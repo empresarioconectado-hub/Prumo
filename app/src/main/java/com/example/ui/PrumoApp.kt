@@ -371,6 +371,7 @@ fun PrumoApp() {
                         composable(ROUTE_SALES_DRE) {
                             SalesDreScreen(
                                 data = dashboardData,
+                                hideValues = hideValues,
                                 onShiftMonth = viewModel::shiftMonth,
                                 onAddSale = { activeDialog = ActiveDialog.SaleForm(null) },
                                 onEditSale = { activeDialog = ActiveDialog.SaleForm(it) },
