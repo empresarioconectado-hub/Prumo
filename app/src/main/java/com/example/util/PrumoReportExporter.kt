@@ -1,11 +1,11 @@
 package com.example.util
 
-import android.content.Context
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.example.ui.viewmodel.PrumoDashboardData
 import java.io.OutputStream
+import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -13,6 +13,7 @@ import java.util.Locale
 object PrumoReportExporter {
     fun writeDrePdf(output: OutputStream, data: PrumoDashboardData) {
         val document = PdfDocument()
+        try {
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
         val page = document.startPage(pageInfo)
         val canvas = page.canvas
@@ -46,26 +47,35 @@ object PrumoReportExporter {
         canvas.drawText("Gerado em ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date())}", 40f, y, body)
         document.finishPage(page)
         document.writeTo(output)
-        document.close()
+        } finally {
+            document.close()
+        }
     }
 
     fun cashEntriesCsv(data: PrumoDashboardData): String {
         val header = "Data;Descrição;Tipo;Categoria;Conta;Status;Valor (R$)"
         val rows = data.monthCashEntries.sortedBy { it.dateMillis }.map { entry ->
             listOf(
-                SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")).format(Date(entry.dateMillis)),
-                entry.description,
-                entry.entryType.label,
-                entry.category,
-                entry.account,
-                entry.entryStatus.label,
-                String.format(Locale.US, "%.2f", entry.amountCents / 100.0)
-            ).joinToString(";") { csv(it) }
+                csv(SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")).format(Date(entry.dateMillis))),
+                csv(entry.description, protectFormula = true),
+                csv(entry.entryType.label),
+                csv(entry.category, protectFormula = true),
+                csv(entry.account, protectFormula = true),
+                csv(entry.entryStatus.label),
+                BigDecimal.valueOf(entry.amountCents, 2).toPlainString()
+            ).joinToString(";")
         }
-        return (listOf(header) + rows).joinToString("\r\n")
+        // UTF-8 BOM improves compatibility with Excel when opening Portuguese text directly.
+        return "\uFEFF" + (listOf(header) + rows).joinToString("\r\n")
     }
 
-    private fun csv(value: String): String = "\"" + value.replace("\"", "\"\"") + "\""
+    private fun csv(value: String, protectFormula: Boolean = false): String {
+        val safeValue = if (protectFormula && value.trimStart().firstOrNull() in listOf('=', '+', '-', '@')) {
+            "'$value"
+        } else value
+        return "\"" + safeValue.replace("\"", "\"\"") + "\""
+    }
+
     private fun money(cents: Long): String =
-        "R$ " + String.format(Locale("pt", "BR"), "%,.2f", cents / 100.0)
+        "R$ " + BigDecimal.valueOf(cents, 2).toPlainString()
 }
