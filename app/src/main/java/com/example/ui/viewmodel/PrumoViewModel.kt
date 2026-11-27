@@ -121,15 +121,21 @@ class PrumoViewModel(
     private val _feedbackEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val feedbackEvents: SharedFlow<String> = _feedbackEvents.asSharedFlow()
 
-    private val rawCollectionsFlow = combine(
+    private val rawCollectionsBaseFlow = combine(
         repository.settingsFlow,
         repository.cashEntriesFlow,
         repository.stockItemsFlow,
-        repository.stockMovementsFlow,
         repository.salesFlow,
         repository.sellersFlow
-    ) { settings, cash, stock, movements, sales, sellers ->
-        RawCollections(settings, cash, stock, movements, sales, sellers)
+    ) { settings, cash, stock, sales, sellers ->
+        RawCollections(settings, cash, stock, emptyList(), sales, sellers)
+    }
+
+    private val rawCollectionsFlow = combine(
+        rawCollectionsBaseFlow,
+        repository.stockMovementsFlow
+    ) { raw, movements ->
+        raw.copy(movements = movements)
     }
 
     val dashboardState: StateFlow<PrumoDashboardData> = combine(
