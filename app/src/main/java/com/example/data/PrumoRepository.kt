@@ -9,6 +9,7 @@ import com.example.model.SaleRecord
 import com.example.model.SellerProfile
 import com.example.model.StockItem
 import com.example.model.StockMovementType
+import com.example.model.StockMovement
 import java.util.Calendar
 import kotlinx.coroutines.flow.Flow
 
@@ -19,6 +20,7 @@ class PrumoRepository(
     val settingsFlow: Flow<BusinessSettings> = settingsStore.settingsFlow
     val cashEntriesFlow: Flow<List<CashEntry>> = dao.observeCashEntries()
     val stockItemsFlow: Flow<List<StockItem>> = dao.observeStockItems()
+    val stockMovementsFlow: Flow<List<StockMovement>> = dao.observeStockMovements()
     val salesFlow: Flow<List<SaleRecord>> = dao.observeSales()
     val sellersFlow: Flow<List<SellerProfile>> = dao.observeSellers()
     val fixedExpensesFlow: Flow<List<FixedExpense>> = dao.observeFixedExpenses()
@@ -58,24 +60,32 @@ class PrumoRepository(
 
     suspend fun applyStockMovement(item: StockItem, movementType: StockMovementType, units: Long): Boolean {
         if (units <= 0L) return false
+        val current = dao.stockItemById(item.id) ?: return false
         val updated = when (movementType) {
-            StockMovementType.PURCHASE -> item.copy(quantity = item.quantity + units)
+            StockMovementType.PURCHASE -> current.copy(quantity = current.quantity + units)
             StockMovementType.SALE -> {
-                if (item.quantity < units) return false
-                item.copy(
-                    quantity = item.quantity - units,
-                    soldUnitsCount = item.soldUnitsCount + units
-                )
+                if (current.quantity < units) return false
+                current.copy(quantity = current.quantity - units, soldUnitsCount = current.soldUnitsCount + units)
             }
             StockMovementType.LOSS -> {
-                if (item.quantity < units) return false
-                item.copy(
-                    quantity = item.quantity - units,
-                    lossUnitsCount = item.lossUnitsCount + units
-                )
+                if (current.quantity < units) return false
+                current.copy(quantity = current.quantity - units, lossUnitsCount = current.lossUnitsCount + units)
             }
+            StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
         }
         dao.updateStockItem(updated)
+        dao.insertStockMovement(StockMovement(
+            stockItemId = current.id, sku = current.sku, productName = current.name,
+            movementType = movementType.name, quantity = units,
+            unitCostCents = current.unitCostCents,
+            referenceNote = when (movementType) {
+                StockMovementType.PURCHASE -> "Compra / reposição"
+                StockMovementType.SALE -> "Saída manual de estoque"
+                StockMovementType.LOSS -> "Perda / avaria"
+                StockMovementType.ADJUSTMENT -> "Ajuste manual de saldo"
+            },
+            dateMillis = System.currentTimeMillis()
+        ))
         return true
     }
 
@@ -121,7 +131,7 @@ class PrumoRepository(
 
     suspend fun clearAllData() {
         dao.clearCashEntries()
-        dao.clearStockItems()
+        dao.clearStockItems()\n        dao.clearStockMovements()
         dao.clearSales()
         dao.clearSellers()
         dao.clearFixedExpenses()
