@@ -169,7 +169,8 @@ fun CashFlowScreen(
 
                     CashProjectionChart(
                         points = data.cashProjection30Days,
-                        minAlertCents = data.settings.minCashAlertCents
+                        minAlertCents = data.settings.minCashAlertCents,
+                        hideValues = hideValues
                     )
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
