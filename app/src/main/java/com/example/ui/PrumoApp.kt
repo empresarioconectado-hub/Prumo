@@ -362,6 +362,7 @@ fun PrumoApp() {
                         composable(ROUTE_STOCK) {
                             StockScreen(
                                 data = dashboardData,
+                                hideValues = hideValues,
                                 onAddItem = { activeDialog = ActiveDialog.StockForm(null) },
                                 onEditItem = { activeDialog = ActiveDialog.StockForm(it) },
                                 onMoveItem = { activeDialog = ActiveDialog.StockMovementForm(it) },
