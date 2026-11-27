@@ -83,7 +83,7 @@ interface PrumoDao {
         insertCashEntry(CashEntry(
             description = "Venda #${id} - ${saved.description}",
             amountCents = saved.grossAmountCents, type = CashEntryType.INCOME.name,
-            category = "Vendas à vista", account = saved.account,
+            category = if (saved.paymentStatus == CashEntryStatus.PAID.name) "Vendas à vista" else "Vendas a prazo", account = saved.account,
             paymentMethod = saved.paymentMethod, status = saved.paymentStatus,
             dateMillis = saved.saleDateMillis, saleId = id
         ))
@@ -97,7 +97,7 @@ interface PrumoDao {
         deleteSaleById(id)
     }
 
-    suspend fun reverseSaleStock(sale: SaleRecord) {
+    private suspend fun reverseSaleStock(sale: SaleRecord) {
         val stockId = sale.stockItemId ?: return
         val item = stockItemById(stockId) ?: return
         updateStockItem(item.copy(
