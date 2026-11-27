@@ -122,10 +122,11 @@ class PrumoViewModel(
         repository.settingsFlow,
         repository.cashEntriesFlow,
         repository.stockItemsFlow,
+        repository.stockMovementsFlow,
         repository.salesFlow,
         repository.sellersFlow
-    ) { settings, cash, stock, sales, sellers ->
-        RawCollections(settings, cash, stock, sales, sellers)
+    ) { settings, cash, stock, movements, sales, sellers ->
+        RawCollections(settings, cash, stock, movements, sales, sellers)
     }
 
     val dashboardState: StateFlow<PrumoDashboardData> = combine(
