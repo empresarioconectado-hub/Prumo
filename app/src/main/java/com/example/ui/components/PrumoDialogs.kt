@@ -554,7 +554,7 @@ fun StockMovementDialog(
 
                     Text("Tipo de movimentação", style = MaterialTheme.typography.labelMedium)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StockMovementType.entries.forEach { m ->
+                        StockMovementType.entries.filter { it != StockMovementType.ADJUSTMENT }.forEach { m ->
                             FilterChip(
                                 selected = movementType == m,
                                 onClick = { movementType = m },
