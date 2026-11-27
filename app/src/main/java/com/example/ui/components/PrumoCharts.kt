@@ -52,6 +52,7 @@ import kotlin.math.min
 fun CashProjectionChart(
     points: List<DailyCashPoint>,
     minAlertCents: Long,
+    hideValues: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
@@ -82,12 +83,12 @@ fun CashProjectionChart(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Máx: ${formatBrlCompact(maxVal.toLong())}",
+                text = if (hideValues) "Máx: ••••••" else "Máx: ${formatBrlCompact(maxVal.toLong())}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Mín. Segurança: ${formatBrlCompact(minAlertCents)}",
+                text = if (hideValues) "Mín. Segurança: ••••••" else "Mín. Segurança: ${formatBrlCompact(minAlertCents)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = PrumoAlertYellowInk
             )
