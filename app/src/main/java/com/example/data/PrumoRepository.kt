@@ -40,9 +40,10 @@ class PrumoRepository(
         settingsStore.updateSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent)
     }
 
-    suspend fun saveCashEntry(entry: CashEntry) {
-        require(entry.saleId == null) { "Lançamentos gerados por vendas devem ser alterados pela própria venda." }
+    suspend fun saveCashEntry(entry: CashEntry): Boolean {
+        if (entry.saleId != null) return false
         if (entry.id == 0L) dao.insertCashEntry(entry) else dao.updateCashEntry(entry)
+        return true
     }
 
     suspend fun markCashEntryStatus(id: Long, status: CashEntryStatus) {
@@ -51,10 +52,11 @@ class PrumoRepository(
         entry.saleId?.let { dao.updateSalePaymentStatus(it, status.name) }
     }
 
-    suspend fun deleteCashEntry(id: Long) {
+    suspend fun deleteCashEntry(id: Long): Boolean {
         val entry = dao.cashEntryById(id)
-        require(entry?.saleId == null) { "Exclua ou edite a venda para remover seu lançamento vinculado." }
+        if (entry?.saleId != null) return false
         dao.deleteCashEntryById(id)
+        return true
     }
 
     suspend fun saveStockItem(item: StockItem) {
