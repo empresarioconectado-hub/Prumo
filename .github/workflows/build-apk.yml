@@ -40,6 +40,22 @@ jobs:
       - name: Run unit tests
         run: ./gradlew test
 
+      # O app exige debug.keystore em debugConfig. Gere a chave padrão no runner,
+      # sem versionar material de assinatura no repositório.
+      - name: Generate debug keystore for CI
+        run: |
+          if [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v \\
+              -keystore debug.keystore \\
+              -storepass android \\
+              -alias androiddebugkey \\
+              -keypass android \\
+              -keyalg RSA \\
+              -keysize 2048 \\
+              -validity 10000 \\
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
