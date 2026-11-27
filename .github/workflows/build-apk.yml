@@ -23,8 +23,6 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      # O repositório contém gradle-wrapper.properties, mas não versiona
-      # gradlew nem gradle-wrapper.jar. Bootstrap do wrapper no runner.
       - name: Bootstrap Gradle Wrapper
         run: |
           GRADLE_VERSION="$(sed -n 's#.*gradle-\([0-9.]*\)-bin.zip#\1#p' gradle/wrapper/gradle-wrapper.properties)"
@@ -40,24 +38,6 @@ jobs:
       - name: Run unit tests
         run: ./gradlew test
 
-      # O app exige debug.keystore em debugConfig. Gere a chave padrão no runner,
-      # sem versionar material de assinatura no repositório.
-      - name: Generate debug keystore for CI
-        run: |
-          if [ ! -f debug.keystore ]; then
-            keytool -genkeypair -v \\
-              -keystore debug.keystore \\
-              -storepass android \\
-              -alias androiddebugkey \\
-              -keypass android \\
-              -keyalg RSA \\
-              -keysize 2048 \\
-              -validity 10000 \\
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
-
-      # The Android project uses a repository-local debug.keystore for debug signing.
-      # Generate an ephemeral key on the runner instead of committing a keystore.
       - name: Generate debug signing keystore
         run: |
           if [ ! -f debug.keystore ]; then
