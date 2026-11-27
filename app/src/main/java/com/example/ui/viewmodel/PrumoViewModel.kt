@@ -71,7 +71,8 @@ data class PrumoDashboardData(
     val selectedMonth: MonthYearFilter = MonthYearFilter.current(),
     val allCashEntries: List<CashEntry> = emptyList(),
     val monthCashEntries: List<CashEntry> = emptyList(),
-    val stockItems: List<StockItem> = emptyList(),\n    val stockMovements: List<StockMovement> = emptyList(),
+    val stockItems: List<StockItem> = emptyList(),
+    val stockMovements: List<StockMovement> = emptyList(),
     val monthSales: List<SaleRecord> = emptyList(),
     val sellers: List<SellerProfile> = emptyList(),
     val monthFixedExpenses: List<FixedExpense> = emptyList(),
@@ -103,7 +104,8 @@ data class PrumoDashboardData(
 private data class RawCollections(
     val settings: BusinessSettings,
     val cash: List<CashEntry>,
-    val stock: List<StockItem>,\n    val movements: List<StockMovement>,
+    val stock: List<StockItem>,
+    val movements: List<StockMovement>,
     val sales: List<SaleRecord>,
     val sellers: List<SellerProfile>
 )
@@ -278,7 +280,8 @@ class PrumoViewModel(
             val goal = profile?.monthlyGoalCents ?: 1_000_000L
             val commRate = profile?.commissionPercent ?: sellerSales.firstOrNull()?.commissionPercent ?: 5.0
             val estCommission = if (profile != null) {
-                BigDecimal.valueOf(totalSold).multiply(BigDecimal.valueOf(profile.commissionPercent))\n                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValueExact()
+                BigDecimal.valueOf(totalSold).multiply(BigDecimal.valueOf(profile.commissionPercent))
+                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValueExact()
             } else {
                 sellerSales.sumOf { it.commissionCents }
             }
@@ -298,12 +301,14 @@ class PrumoViewModel(
             selectedMonth = monthFilter,
             allCashEntries = allCash,
             monthCashEntries = monthCash,
-            stockItems = sortedStock,\n            stockMovements = raw.movements,
+            stockItems = sortedStock,
+            stockMovements = raw.movements,
             monthSales = monthSales,
             sellers = raw.sellers,
             monthFixedExpenses = monthFixed,
             realizedBalanceCents = realizedBalance,
-            monthPredictedEndBalanceCents = monthPredictedEndBalance,\n            monthInitialBalanceCents = monthInitialBalance,
+            monthPredictedEndBalanceCents = monthPredictedEndBalance,
+            monthInitialBalanceCents = monthInitialBalance,
             monthPaidIncomeCents = monthPaidIncome,
             monthPaidExpenseCents = monthPaidExpense,
             monthPendingIncomeCents = monthPendingIncome,
