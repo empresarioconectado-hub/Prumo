@@ -14,6 +14,7 @@ import com.example.model.SaleRecord
 import com.example.model.SellerProfile
 import com.example.model.SellerRankingItem
 import com.example.model.StockItem
+import com.example.model.StockMovement
 import com.example.model.StockMovementType
 import com.example.model.StockStatus
 import java.util.Calendar
@@ -70,7 +71,7 @@ data class PrumoDashboardData(
     val selectedMonth: MonthYearFilter = MonthYearFilter.current(),
     val allCashEntries: List<CashEntry> = emptyList(),
     val monthCashEntries: List<CashEntry> = emptyList(),
-    val stockItems: List<StockItem> = emptyList(),
+    val stockItems: List<StockItem> = emptyList(),\n    val stockMovements: List<StockMovement> = emptyList(),
     val monthSales: List<SaleRecord> = emptyList(),
     val sellers: List<SellerProfile> = emptyList(),
     val monthFixedExpenses: List<FixedExpense> = emptyList(),
@@ -102,7 +103,7 @@ data class PrumoDashboardData(
 private data class RawCollections(
     val settings: BusinessSettings,
     val cash: List<CashEntry>,
-    val stock: List<StockItem>,
+    val stock: List<StockItem>,\n    val movements: List<StockMovement>,
     val sales: List<SaleRecord>,
     val sellers: List<SellerProfile>
 )
@@ -296,7 +297,7 @@ class PrumoViewModel(
             selectedMonth = monthFilter,
             allCashEntries = allCash,
             monthCashEntries = monthCash,
-            stockItems = sortedStock,
+            stockItems = sortedStock,\n            stockMovements = raw.movements,
             monthSales = monthSales,
             sellers = raw.sellers,
             monthFixedExpenses = monthFixed,
