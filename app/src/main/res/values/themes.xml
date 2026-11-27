@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Prumo" parent="android:Theme.DeviceDefault.NoActionBar" />
+    <style name="Theme.Prumo" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#0F7B4F</item>
+        <item name="android:navigationBarColor">#0F7B4F</item>
+        <item name="android:windowBackground">#0F7B4F</item>
+    </style>
 </resources>
