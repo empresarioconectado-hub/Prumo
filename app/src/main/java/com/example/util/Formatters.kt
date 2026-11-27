@@ -6,7 +6,6 @@ import java.math.RoundingMode
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.roundToLong
 
 private val ptBrLocale = Locale.Builder().setLanguage("pt").setRegion("BR").build()
 
@@ -38,9 +37,13 @@ fun parseBrlInputToCents(raw: String): Long? {
             trimmed.replace(",", ".")
         else -> trimmed
     }
-    val value = normalized.toDoubleOrNull() ?: return null
-    if (value < 0) return null
-    return (value * 100.0).roundToLong()
+    val value = normalized.toBigDecimalOrNull() ?: return null
+    if (value.signum() < 0) return null
+    return try {
+        value.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).longValueExact()
+    } catch (_: ArithmeticException) {
+        null
+    }
 }
 
 fun centsToInputText(cents: Long): String {
