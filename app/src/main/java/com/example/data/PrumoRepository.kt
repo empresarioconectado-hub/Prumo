@@ -94,15 +94,11 @@ class PrumoRepository(
     }
 
     suspend fun saveSale(sale: SaleRecord) {
-        if (sale.id == 0L) {
-            dao.insertSale(sale)
-        } else {
-            dao.updateSale(sale)
-        }
+        dao.saveSaleAtomic(sale)
     }
 
     suspend fun deleteSale(id: Long) {
-        dao.deleteSaleById(id)
+        dao.deleteSaleAtomic(id)
     }
 
     suspend fun saveSeller(seller: SellerProfile) {
