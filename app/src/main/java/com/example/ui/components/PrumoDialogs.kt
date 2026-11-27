@@ -765,7 +765,14 @@ fun SaleRecordDialog(
                 Text("Forma de pagamento", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     PrumoConstants.paymentMethods.forEach { method ->
-                        FilterChip(selected = paymentMethod == method, onClick = { paymentMethod = method }, label = { Text(method) })
+                        FilterChip(
+                            selected = paymentMethod == method,
+                            onClick = {
+                                paymentMethod = method
+                                paymentStatus = if (method == "Pix" || method == "Dinheiro" || method == "Transferência") "PAID" else "PENDING"
+                            },
+                            label = { Text(method) }
+                        )
                     }
                 }
                 Text("Conta de recebimento", style = MaterialTheme.typography.labelMedium)
