@@ -83,6 +83,7 @@ import com.example.ui.screens.OverviewScreen
 import com.example.ui.screens.SalesDreScreen
 import com.example.ui.screens.StockScreen
 import com.example.ui.viewmodel.PrumoViewModel
+import com.example.util.PrumoReportExporter
 import kotlinx.coroutines.launch
 
 private const val ROUTE_OVERVIEW = "overview"
@@ -145,6 +146,34 @@ fun PrumoApp() {
                 snackbarHostState.showSnackbar("Backup exportado com sucesso.")
             } catch (error: Exception) {
                 snackbarHostState.showSnackbar("Falha ao exportar backup: ${error.message}")
+            }
+        }
+    }
+    val exportDrePdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null) coroutineScope.launch {
+            try {
+                val output = context.contentResolver.openOutputStream(uri)
+                    ?: error("Não foi possível abrir o arquivo de destino.")
+                output.use { PrumoReportExporter.writeDrePdf(it, dashboardData) }
+                snackbarHostState.showSnackbar("DRE exportada em PDF.")
+            } catch (error: Exception) {
+                snackbarHostState.showSnackbar("Falha ao exportar PDF: ${error.message}")
+            }
+        }
+    }
+    val exportCashCsvLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri != null) coroutineScope.launch {
+            try {
+                val output = context.contentResolver.openOutputStream(uri)
+                    ?: error("Não foi possível abrir o arquivo de destino.")
+                output.use { it.write(PrumoReportExporter.cashEntriesCsv(dashboardData).toByteArray(Charsets.UTF_8)) }
+                snackbarHostState.showSnackbar("Fluxo de caixa exportado em CSV.")
+            } catch (error: Exception) {
+                snackbarHostState.showSnackbar("Falha ao exportar CSV: ${error.message}")
             }
         }
     }
@@ -351,7 +380,9 @@ fun PrumoApp() {
                                 onDeleteSeller = viewModel::deleteSeller,
                                 onAddFixedExpense = { activeDialog = ActiveDialog.FixedExpenseForm(null) },
                                 onEditFixedExpense = { activeDialog = ActiveDialog.FixedExpenseForm(it) },
-                                onDeleteFixedExpense = viewModel::deleteFixedExpense
+                                onDeleteFixedExpense = viewModel::deleteFixedExpense,
+                                onExportDrePdf = { exportDrePdfLauncher.launch("prumo-dre-${System.currentTimeMillis()}.pdf") },
+                                onExportCashCsv = { exportCashCsvLauncher.launch("prumo-caixa-${System.currentTimeMillis()}.csv") }
                             )
                         }
                     }
