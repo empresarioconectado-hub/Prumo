@@ -1,0 +1,34 @@
+# Histórico de alterações
+
+As mudanças relevantes do Prumo Gestão são registradas neste arquivo. As entradas descrevem o estado do projeto e não substituem as notas específicas de cada release.
+
+O projeto ainda não possui uma primeira versão pública estável formalmente publicada.
+
+## Em desenvolvimento
+
+### Funcionalidades e estrutura existentes
+
+- Aplicativo Android desenvolvido em Kotlin e Jetpack Compose.
+- Painel gerencial com indicadores de caixa, vendas e estoque.
+- Lançamentos financeiros com status pago e pendente.
+- Cadastro e movimentação de produtos.
+- Registro de vendas com reflexos relacionados em caixa e estoque.
+- Cadastro de vendedores, metas e comissões.
+- Registro de despesas fixas.
+- Indicadores de DRE gerencial.
+- Modo de privacidade visual para valores monetários nas telas compatíveis.
+- Exportação da DRE em PDF e do fluxo de caixa em CSV.
+- Backup manual e restauração por arquivo JSON versionado.
+- Persistência local com Room e Preferences DataStore.
+- Testes automatizados e workflow de compilação do APK de depuração.
+
+## Convenção de versionamento
+
+Quando houver releases, cada versão deverá registrar:
+- número e data da versão;
+- funcionalidades adicionadas;
+- correções;
+- alterações incompatíveis ou migrações;
+- limitações conhecidas.
+
+Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo o `versionCode` Android crescente.

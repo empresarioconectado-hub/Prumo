@@ -2,49 +2,83 @@
 
 **Última atualização: 27 de novembro de 2026**
 
-O Prumo Gestão é um aplicativo de organização financeira e operacional para pequenos negócios.
+Esta política descreve o tratamento de informações na versão Android do Prumo Gestão, aplicativo de organização financeira e operacional para pequenos negócios.
 
-## 1. Dados tratados
+O responsável pelo aplicativo deverá revisar este documento, identificar formalmente o controlador dos dados e disponibilizar um canal de contato válido antes de distribuir o produto publicamente.
 
-O aplicativo permite ao usuário cadastrar informações de negócio, incluindo:
-- lançamentos de caixa, valores, categorias, datas e contas;
-- vendas, clientes e vendedores;
-- produtos, quantidades e movimentações de estoque;
-- despesas fixas e configurações do negócio;
+## 1. Informações tratadas
+
+O aplicativo permite que o usuário cadastre informações relacionadas à operação do negócio, incluindo:
+
+- lançamentos de caixa, valores, categorias, contas, datas e formas de pagamento;
+- vendas, nomes de clientes e vendedores;
+- produtos, quantidades, custos, preços e movimentações de estoque;
+- despesas fixas;
+- configurações do negócio, como nome, saldo inicial e parâmetros gerenciais;
 - arquivos de backup exportados ou importados pelo próprio usuário.
 
-Essas informações são inseridas pelo próprio usuário. Não solicitamos dados bancários, credenciais de instituições financeiras ou documentos pessoais para o funcionamento das funções locais descritas.
+Essas informações são fornecidas pelo usuário durante o uso do aplicativo. A versão descrita não solicita credenciais bancárias nem oferece conexão com contas de instituições financeiras.
 
-## 2. Onde os dados ficam armazenados
+## 2. Armazenamento e processamento
 
-Os registros operacionais são armazenados no banco de dados local do aplicativo no dispositivo. As configurações são armazenadas localmente. O aplicativo oferece exportação e restauração manual de backup em JSON.
+Os registros operacionais são armazenados localmente no dispositivo Android, por meio do banco de dados Room. As preferências do negócio são mantidas localmente pelo Preferences DataStore.
 
-Na versão atual, não há sincronização de registros financeiros com um servidor do Prumo. O usuário deve proteger o dispositivo e os arquivos de backup, pois quem tiver acesso desbloqueado ao aparelho ou ao arquivo poderá visualizar os dados.
+Na versão documentada, os registros financeiros e operacionais não são sincronizados com um servidor do Prumo. O manifesto Android também desativa o backup automático do aplicativo. A cópia de segurança disponível é iniciada manualmente pelo usuário, por meio da exportação de um arquivo JSON.
 
-## 3. Compartilhamento
+O acesso ao dispositivo desbloqueado ou a um arquivo exportado pode permitir a visualização das informações nele contidas. O usuário deve proteger o aparelho e os arquivos gerados.
 
-O Prumo não vende dados pessoais. Quando o usuário optar por compartilhar um relatório ou comprovante com outro aplicativo, o conteúdo selecionado será encaminhado ao destino escolhido pelo próprio usuário (por exemplo, WhatsApp ou e-mail), sujeito às políticas desse serviço.
+## 3. Compartilhamento e serviços de terceiros
+
+O aplicativo permite salvar arquivos de relatório e backup em destinos escolhidos pelo usuário por meio dos mecanismos do Android. Caso o usuário copie ou compartilhe esses arquivos por outros aplicativos, o tratamento posterior será regido pelas políticas e condições do serviço de destino.
+
+O Prumo não controla a disponibilidade, a segurança ou as práticas de privacidade de serviços de terceiros escolhidos pelo usuário.
 
 ## 4. Permissões
 
-Permissões como notificações, câmera ou acesso a arquivos só devem ser solicitadas quando a respectiva funcionalidade estiver disponível e for utilizada. O usuário pode gerenciar permissões nas configurações do Android.
+O manifesto da versão atual declara a permissão `POST_NOTIFICATIONS`. A funcionalidade de notificações programadas ainda não integra o escopo funcional disponível. A declaração no manifesto, por si só, não significa que o aplicativo esteja enviando notificações.
+
+As permissões efetivamente solicitadas podem variar conforme a versão e os recursos implementados. O usuário pode consultar e gerenciar as permissões concedidas nas configurações do Android.
 
 ## 5. Retenção e exclusão
 
-Os dados permanecem no dispositivo até que o usuário os exclua, limpe os dados do aplicativo ou desinstale o app. A ação “Apagar todos os dados” remove permanentemente os registros locais do Prumo e não pode ser desfeita. Recomenda-se exportar um backup antes.
+Os registros permanecem no dispositivo até que o usuário:
+- os exclua pelas funções disponíveis no aplicativo;
+- utilize a opção de apagar os dados;
+- limpe os dados do aplicativo nas configurações do Android; ou
+- desinstale o aplicativo.
 
-Arquivos exportados ficam sob controle do usuário e precisam ser excluídos separadamente do local em que foram salvos ou compartilhados.
+A opção de apagar todos os dados remove permanentemente os registros locais abrangidos pela função e não pode ser desfeita. Recomenda-se exportar um backup antes de confirmar a operação.
+
+Arquivos exportados não são apagados automaticamente quando os dados do aplicativo são removidos. O usuário deve localizar e excluir separadamente as cópias armazenadas ou compartilhadas.
 
 ## 6. Segurança
 
-O Prumo utiliza armazenamento local do Android e os mecanismos de proteção do próprio dispositivo. Nenhum aplicativo pode garantir segurança absoluta. Recomendamos bloqueio de tela, atualizações do Android e cuidado ao compartilhar backups.
+O aplicativo utiliza os mecanismos de armazenamento e proteção disponibilizados pelo Android e mantém os registros operacionais localmente. O modo de privacidade visual apenas oculta valores nas telas compatíveis; não equivale a criptografia, autenticação ou bloqueio do aplicativo.
 
-## 7. Direitos do titular
+Nenhum mecanismo elimina todos os riscos. Recomenda-se utilizar bloqueio de tela, manter o sistema atualizado e não compartilhar backups com pessoas não autorizadas.
 
-Nos termos da Lei Geral de Proteção de Dados (LGPD), o usuário pode solicitar esclarecimentos sobre o tratamento de dados. Como os registros operacionais são mantidos localmente e não são enviados ao servidor do Prumo nesta versão, o próprio usuário pode consultá-los, exportá-los ou apagá-los no dispositivo.
+## 7. Direitos dos titulares
 
-## 8. Alterações e contato
+A Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018) pode ser aplicável ao tratamento de dados pessoais realizado no contexto de uso do aplicativo.
 
-Esta política poderá ser atualizada quando novas funcionalidades ou integrações forem disponibilizadas. A versão vigente será publicada nesta página.
+Como os registros operacionais desta versão permanecem no dispositivo do usuário e não são enviados ao servidor do Prumo, o próprio usuário dispõe das funções locais de consulta, exportação e exclusão. Para solicitações que dependam do responsável pelo produto, deverá ser disponibilizado um canal de contato válido e monitorado.
 
-Para publicar o aplicativo na Google Play, o responsável pelo Prumo deverá disponibilizar um canal de contato válido e monitorado e manter esta política acessível na ficha da loja.
+Esta descrição não substitui a avaliação jurídica do fluxo de dados, das responsabilidades do controlador e dos operadores ou das obrigações legais aplicáveis à distribuição do produto.
+
+## 8. Público e uso adequado
+
+O aplicativo é uma ferramenta de apoio à gestão de pequenos negócios. Não foi documentado como serviço bancário, instituição de pagamento ou ferramenta de consulta a dados financeiros de instituições.
+
+O usuário deve evitar inserir dados pessoais excessivos ou informações que não sejam necessárias à gestão do negócio.
+
+## 9. Alterações desta política
+
+Esta política poderá ser atualizada quando houver mudanças no aplicativo, nos dados tratados, nas permissões, nos serviços integrados ou na legislação aplicável. A versão vigente deverá permanecer acessível aos usuários.
+
+## 10. Identificação e contato do responsável
+
+**Responsável pelo aplicativo:** informação a ser preenchida pelo mantenedor do Prumo.
+
+**Canal de contato para privacidade:** deve ser definido e monitorado pelo responsável antes da distribuição pública.
+
+Não publique o aplicativo em uma loja enquanto os dados de identificação e o canal de contato exigidos para a operação não estiverem preenchidos e revisados.
