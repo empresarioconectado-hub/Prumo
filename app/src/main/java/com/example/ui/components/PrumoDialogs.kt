@@ -498,7 +498,8 @@ fun StockItemDialog(
                                 unitCostCents = cost,
                                 unitPriceCents = price,
                                 soldUnitsCount = existing?.soldUnitsCount ?: 0L,
-                                lossUnitsCount = existing?.lossUnitsCount ?: 0L
+                                lossUnitsCount = existing?.lossUnitsCount ?: 0L,
+                                initialQuantity = existing?.initialQuantity ?: qty
                             )
                         )
                     }
@@ -640,9 +641,14 @@ fun SaleRecordDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                if (stockItems.isNotEmpty() && existing == null) {
+                if (stockItems.isNotEmpty()) {
                     Text("Preencher de produto do estoque (opcional)", style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(
+                            selected = selectedStockItemId == null,
+                            onClick = { selectedStockItemId = null; selectedUnitPriceCents = null; selectedUnitCostCents = null },
+                            label = { Text("Sem vínculo") }
+                        )
                         stockItems.take(8).forEach { item ->
                             FilterChip(
                                 selected = selectedStockItemId == item.id,
