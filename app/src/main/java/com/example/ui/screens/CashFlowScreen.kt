@@ -188,7 +188,7 @@ fun CashFlowScreen(
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         displayedProjectionDays.forEach { day ->
-                            DailyProjectionRow(day = day)
+                            DailyProjectionRow(day = day, hideValues = hideValues)
                         }
                     }
                 }
@@ -244,6 +244,7 @@ fun CashFlowScreen(
             items(filteredEntries, key = { it.id }) { entry ->
                 CashEntryCard(
                     entry = entry,
+                    hideValues = hideValues,
                     onTogglePaid = { onTogglePaid(entry) },
                     onEdit = { onEditEntry(entry) },
                     onDelete = { onDeleteEntry(entry.id) }
@@ -334,7 +335,7 @@ private fun CashMetricTile(
 }
 
 @Composable
-private fun DailyProjectionRow(day: DailyCashPoint) {
+private fun DailyProjectionRow(day: DailyCashPoint, hideValues: Boolean) {
     val isDark = isSystemInDarkTheme()
     val isNegative = day.projectedBalanceCents < 0L
     val badgeBg = when {
@@ -407,6 +408,7 @@ private fun DailyProjectionRow(day: DailyCashPoint) {
 @Composable
 private fun CashEntryCard(
     entry: CashEntry,
+    hideValues: Boolean,
     onTogglePaid: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
