@@ -52,9 +52,23 @@ class PrumoRepository(
 
     suspend fun saveStockItem(item: StockItem) {
         if (item.id == 0L) {
-            dao.insertStockItem(item)
+            val id = dao.insertStockItem(item)
+            if (item.quantity > 0L) dao.insertStockMovement(StockMovement(
+                stockItemId = id, sku = item.sku, productName = item.name,
+                movementType = StockMovementType.PURCHASE.name, quantity = item.quantity,
+                unitCostCents = item.unitCostCents, referenceNote = "Saldo inicial do cadastro",
+                dateMillis = System.currentTimeMillis()
+            ))
         } else {
+            val current = dao.stockItemById(item.id)
             dao.updateStockItem(item)
+            if (current != null && current.quantity != item.quantity) dao.insertStockMovement(StockMovement(
+                stockItemId = item.id, sku = item.sku, productName = item.name,
+                movementType = StockMovementType.ADJUSTMENT.name,
+                quantity = kotlin.math.abs(item.quantity - current.quantity),
+                unitCostCents = item.unitCostCents, referenceNote = "Ajuste manual de saldo",
+                dateMillis = System.currentTimeMillis()
+            ))
         }
     }
 
