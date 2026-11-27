@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "BusinessSettings": {
+      "title": "BusinessSettings",
+      "description": "Configurações financeiras da empresa do usuário (nome, saldo mínimo de alerta e alíquota padrão).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID do usuário autenticado" },
+        "businessName": { "type": "string", "description": "Nome da empresa" },
+        "minCashAlertCents": { "type": "integer", "description": "Saldo mínimo de alerta em centavos" },
+        "taxRatePercent": { "type": "number", "description": "Alíquota padrão de impostos sobre vendas (%)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" }
+      },
+      "required": ["userId", "businessName", "minCashAlertCents", "taxRatePercent", "createdAt", "updatedAt"]
+    },
+    "CashEntry": {
+      "title": "CashEntry",
+      "description": "Lançamento de entrada ou saída no fluxo de caixa com status pago/pendente e data de vencimento.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID do usuário autenticado" },
+        "description": { "type": "string", "description": "Descrição do lançamento" },
+        "amountCents": { "type": "integer", "description": "Valor em centavos (> 0)" },
+        "type": { "type": "string", "enum": ["INCOME", "EXPENSE"], "description": "Tipo: entrada ou saída" },
+        "category": { "type": "string", "description": "Categoria financeira" },
+        "account": { "type": "string", "description": "Conta ou caixa" },
+        "paymentMethod": { "type": "string", "description": "Forma de pagamento" },
+        "status": { "type": "string", "enum": ["PAID", "PENDING"], "description": "Status de pagamento" },
+        "fixedExpense": { "type": "boolean", "description": "Indica se é despesa fixa para cálculo da DRE" },
+        "dueDateMillis": { "type": "integer", "description": "Data de vencimento/competência em milissegundos" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" }
+      },
+      "required": ["userId", "description", "amountCents", "type", "category", "account", "paymentMethod", "status", "fixedExpense", "dueDateMillis", "createdAt", "updatedAt"]
+    },
+    "StockItem": {
+      "title": "StockItem",
+      "description": "Item de estoque por SKU com ponto de pedido, giro e custo unitário.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID do usuário autenticado" },
+        "name": { "type": "string", "description": "Nome do produto" },
+        "sku": { "type": "string", "description": "Código SKU" },
+        "quantity": { "type": "integer", "description": "Saldo atual em unidades" },
+        "minStock": { "type": "integer", "description": "Estoque mínimo de segurança" },
+        "leadTimeDays": { "type": "integer", "description": "Tempo de reposição em dias" },
+        "avgDailySales": { "type": "number", "description": "Venda média diária em unidades" },
+        "unitCostCents": { "type": "integer", "description": "Custo unitário em centavos" },
+        "unitPriceCents": { "type": "integer", "description": "Preço de venda unitário em centavos" },
+        "soldUnitsCount": { "type": "integer", "description": "Total de unidades vendidas" },
+        "lossUnitsCount": { "type": "integer", "description": "Total de unidades perdidas" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" }
+      },
+      "required": ["userId", "name", "sku", "quantity", "minStock", "leadTimeDays", "avgDailySales", "unitCostCents", "unitPriceCents", "soldUnitsCount", "lossUnitsCount", "createdAt", "updatedAt"]
+    },
+    "SaleRecord": {
+      "title": "SaleRecord",
+      "description": "Registro comercial de venda com CMV/CSV, impostos e comissão de vendedor para DRE.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID do usuário autenticado" },
+        "description": { "type": "string", "description": "Descrição da venda" },
+        "sellerName": { "type": "string", "description": "Nome do vendedor responsável" },
+        "grossAmountCents": { "type": "integer", "description": "Valor bruto da venda em centavos" },
+        "costAmountCents": { "type": "integer", "description": "Custo da mercadoria ou serviço vendido (CMV/CSV) em centavos" },
+        "taxPercent": { "type": "number", "description": "Alíquota de imposto sobre a venda (%)" },
+        "commissionPercent": { "type": "number", "description": "Comissão sobre a venda (%)" },
+        "saleDateMillis": { "type": "integer", "description": "Data da venda em milissegundos" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" }
+      },
+      "required": ["userId", "description", "sellerName", "grossAmountCents", "costAmountCents", "taxPercent", "commissionPercent", "saleDateMillis", "createdAt", "updatedAt"]
+    },
+    "SellerProfile": {
+      "title": "SellerProfile",
+      "description": "Vendedor com meta mensal e percentual de comissão.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID do usuário autenticado" },
+        "name": { "type": "string", "description": "Nome do vendedor" },
+        "monthlyGoalCents": { "type": "integer", "description": "Meta mensal em centavos" },
+        "commissionPercent": { "type": "number", "description": "Comissão padrão (%)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp FieldValue.serverTimestamp()" }
+      },
+      "required": ["userId", "name", "monthlyGoalCents", "commissionPercent", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/BusinessSettings" },
+      "description": "Configurações da empresa do usuário"
+    },
+    "/users/{userId}/cashEntries/{entryId}": {
+      "schema": { "$ref": "#/entities/CashEntry" },
+      "description": "Lançamentos de fluxo de caixa do usuário"
+    },
+    "/users/{userId}/stockItems/{itemId}": {
+      "schema": { "$ref": "#/entities/StockItem" },
+      "description": "Itens e saldos de estoque por SKU do usuário"
+    },
+    "/users/{userId}/sales/{saleId}": {
+      "schema": { "$ref": "#/entities/SaleRecord" },
+      "description": "Vendas registradas para ranking e DRE gerencial"
+    },
+    "/users/{userId}/sellers/{sellerId}": {
+      "schema": { "$ref": "#/entities/SellerProfile" },
+      "description": "Metas e comissões dos vendedores"
+    }
+  }
+}

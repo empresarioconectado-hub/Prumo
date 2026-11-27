@@ -1,0 +1,207 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Helpers
+    function isValidBusinessSettings(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.businessName is string && data.businessName.size() >= 1 && data.businessName.size() <= 80 &&
+             data.minCashAlertCents is int && data.minCashAlertCents >= 0 && data.minCashAlertCents <= 1000000000000 &&
+             data.taxRatePercent is number && data.taxRatePercent >= 0 && data.taxRatePercent <= 100 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidCashEntry(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.description is string && data.description.size() >= 1 && data.description.size() <= 120 &&
+             data.amountCents is int && data.amountCents > 0 && data.amountCents <= 1000000000000 &&
+             data.type in ['INCOME', 'EXPENSE'] &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+             data.account is string && data.account.size() >= 1 && data.account.size() <= 60 &&
+             data.paymentMethod is string && data.paymentMethod.size() >= 1 && data.paymentMethod.size() <= 40 &&
+             data.status in ['PAID', 'PENDING'] &&
+             data.fixedExpense is bool &&
+             data.dueDateMillis is int && data.dueDateMillis >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidStockItem(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 40 &&
+             data.quantity is int && data.quantity >= 0 && data.quantity <= 1000000000 &&
+             data.minStock is int && data.minStock >= 0 && data.minStock <= 1000000000 &&
+             data.leadTimeDays is int && data.leadTimeDays >= 0 && data.leadTimeDays <= 365 &&
+             data.avgDailySales is number && data.avgDailySales >= 0 && data.avgDailySales <= 1000000 &&
+             data.unitCostCents is int && data.unitCostCents >= 0 && data.unitCostCents <= 1000000000000 &&
+             data.unitPriceCents is int && data.unitPriceCents >= 0 && data.unitPriceCents <= 1000000000000 &&
+             data.soldUnitsCount is int && data.soldUnitsCount >= 0 && data.soldUnitsCount <= 1000000000 &&
+             data.lossUnitsCount is int && data.lossUnitsCount >= 0 && data.lossUnitsCount <= 1000000000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSaleRecord(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.description is string && data.description.size() >= 1 && data.description.size() <= 120 &&
+             data.sellerName is string && data.sellerName.size() >= 1 && data.sellerName.size() <= 80 &&
+             data.grossAmountCents is int && data.grossAmountCents > 0 && data.grossAmountCents <= 1000000000000 &&
+             data.costAmountCents is int && data.costAmountCents >= 0 && data.costAmountCents <= 1000000000000 &&
+             data.taxPercent is number && data.taxPercent >= 0 && data.taxPercent <= 100 &&
+             data.commissionPercent is number && data.commissionPercent >= 0 && data.commissionPercent <= 100 &&
+             data.saleDateMillis is int && data.saleDateMillis >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSellerProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             data.monthlyGoalCents is int && data.monthlyGoalCents > 0 && data.monthlyGoalCents <= 1000000000000 &&
+             data.commissionPercent is number && data.commissionPercent >= 0 && data.commissionPercent <= 100 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 1. Business Settings
+    match /users/{userId}/settings/{settingId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(settingId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(settingId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'businessName', 'minCashAlertCents', 'taxRatePercent', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'businessName', 'minCashAlertCents', 'taxRatePercent', 'createdAt', 'updatedAt']) &&
+                       isValidBusinessSettings(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(settingId) &&
+                       isValidBusinessSettings(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['businessName', 'minCashAlertCents', 'taxRatePercent', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(settingId);
+    }
+
+    // 2. Cash Flow Entries
+    match /users/{userId}/cashEntries/{entryId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(entryId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(entryId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'description', 'amountCents', 'type', 'category', 'account', 'paymentMethod', 'status', 'fixedExpense', 'dueDateMillis', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'description', 'amountCents', 'type', 'category', 'account', 'paymentMethod', 'status', 'fixedExpense', 'dueDateMillis', 'createdAt', 'updatedAt']) &&
+                       isValidCashEntry(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(entryId) &&
+                       isValidCashEntry(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly(['description', 'amountCents', 'type', 'category', 'account', 'paymentMethod', 'status', 'fixedExpense', 'dueDateMillis', 'updatedAt'])
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(entryId);
+    }
+
+    // 3. Stock Items
+    match /users/{userId}/stockItems/{itemId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(itemId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(itemId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'name', 'sku', 'quantity', 'minStock', 'leadTimeDays', 'avgDailySales', 'unitCostCents', 'unitPriceCents', 'soldUnitsCount', 'lossUnitsCount', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'name', 'sku', 'quantity', 'minStock', 'leadTimeDays', 'avgDailySales', 'unitCostCents', 'unitPriceCents', 'soldUnitsCount', 'lossUnitsCount', 'createdAt', 'updatedAt']) &&
+                       isValidStockItem(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(itemId) &&
+                       isValidStockItem(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         incoming().diff(existing()).affectedKeys().hasOnly(['quantity', 'soldUnitsCount', 'lossUnitsCount', 'updatedAt']) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'sku', 'quantity', 'minStock', 'leadTimeDays', 'avgDailySales', 'unitCostCents', 'unitPriceCents', 'updatedAt'])
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(itemId);
+    }
+
+    // 4. Sales Records
+    match /users/{userId}/sales/{saleId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(saleId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(saleId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'description', 'sellerName', 'grossAmountCents', 'costAmountCents', 'taxPercent', 'commissionPercent', 'saleDateMillis', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'description', 'sellerName', 'grossAmountCents', 'costAmountCents', 'taxPercent', 'commissionPercent', 'saleDateMillis', 'createdAt', 'updatedAt']) &&
+                       isValidSaleRecord(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(saleId) &&
+                       isValidSaleRecord(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['description', 'sellerName', 'grossAmountCents', 'costAmountCents', 'taxPercent', 'commissionPercent', 'saleDateMillis', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(saleId);
+    }
+
+    // 5. Sellers
+    match /users/{userId}/sellers/{sellerId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(sellerId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(sellerId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'name', 'monthlyGoalCents', 'commissionPercent', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'name', 'monthlyGoalCents', 'commissionPercent', 'createdAt', 'updatedAt']) &&
+                       isValidSellerProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(sellerId) &&
+                       isValidSellerProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'monthlyGoalCents', 'commissionPercent', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(sellerId);
+    }
+  }
+}

@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Prumo Gestão</string>
+    <string name="brand_tagline">Gestão empresarial sem planilhas quebradas</string>
+    <string name="nav_overview">Início</string>
+    <string name="nav_cash">Caixa</string>
+    <string name="nav_stock">Estoque</string>
+    <string name="nav_sales">Vendas &amp; DRE</string>
+</resources>

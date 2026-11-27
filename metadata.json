@@ -1,0 +1,6 @@
+{
+  "name": "Prumo Gestão",
+  "description": "Gestão empresarial sem planilhas quebradas: fluxo de caixa com projeção de 30 dias, controle de estoque com ponto de pedido, metas de vendedores e DRE gerencial 100% offline.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
