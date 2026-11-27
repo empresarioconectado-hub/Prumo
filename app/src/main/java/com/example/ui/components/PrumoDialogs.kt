@@ -498,7 +498,8 @@ fun StockItemDialog(
                                 unitCostCents = cost,
                                 unitPriceCents = price,
                                 soldUnitsCount = existing?.soldUnitsCount ?: 0L,
-                                lossUnitsCount = existing?.lossUnitsCount ?: 0L
+                                lossUnitsCount = existing?.lossUnitsCount ?: 0L,
+                                initialQuantity = existing?.initialQuantity ?: qty
                             )
                         )
                     }
@@ -554,7 +555,7 @@ fun StockMovementDialog(
 
                     Text("Tipo de movimentação", style = MaterialTheme.typography.labelMedium)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StockMovementType.entries.forEach { m ->
+                        StockMovementType.entries.filter { it != StockMovementType.ADJUSTMENT }.forEach { m ->
                             FilterChip(
                                 selected = movementType == m,
                                 onClick = { movementType = m },
@@ -617,6 +618,10 @@ fun SaleRecordDialog(
     var commText by remember {
         mutableStateOf((existing?.commissionPercent ?: sellers.firstOrNull()?.commissionPercent ?: 5.0).toString())
     }
+    var selectedStockItemId by remember { mutableStateOf(existing?.stockItemId) }
+    var paymentMethod by remember { mutableStateOf(existing?.paymentMethod ?: "Pix") }
+    var account by remember { mutableStateOf(existing?.account ?: PrumoConstants.cashAccounts.first()) }
+    var paymentStatus by remember { mutableStateOf(existing?.paymentStatus ?: "PAID") }
     var selectedUnitPriceCents by remember { mutableStateOf<Long?>(null) }
     var selectedUnitCostCents by remember { mutableStateOf<Long?>(null) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
@@ -636,13 +641,19 @@ fun SaleRecordDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                if (stockItems.isNotEmpty() && existing == null) {
+                if (stockItems.isNotEmpty()) {
                     Text("Preencher de produto do estoque (opcional)", style = MaterialTheme.typography.labelMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        stockItems.take(8).forEach { item ->
+                        FilterChip(
+                            selected = selectedStockItemId == null,
+                            onClick = { selectedStockItemId = null; selectedUnitPriceCents = null; selectedUnitCostCents = null },
+                            label = { Text("Sem vínculo") }
+                        )
+                        stockItems.forEach { item ->
                             FilterChip(
-                                selected = description == item.name,
+                                selected = selectedStockItemId == item.id,
                                 onClick = {
+                                    selectedStockItemId = item.id
                                     description = item.name
                                     selectedUnitPriceCents = item.unitPriceCents
                                     selectedUnitCostCents = item.unitCostCents
@@ -751,6 +762,31 @@ fun SaleRecordDialog(
                     )
                 }
 
+                Text("Forma de pagamento", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PrumoConstants.paymentMethods.forEach { method ->
+                        FilterChip(
+                            selected = paymentMethod == method,
+                            onClick = {
+                                paymentMethod = method
+                                paymentStatus = if (method == "Pix" || method == "Dinheiro" || method == "Transferência") "PAID" else "PENDING"
+                            },
+                            label = { Text(method) }
+                        )
+                    }
+                }
+                Text("Conta de recebimento", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PrumoConstants.cashAccounts.forEach { acc ->
+                        FilterChip(selected = account == acc, onClick = { account = acc }, label = { Text(acc) })
+                    }
+                }
+                Text("Situação do recebimento", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("PAID" to "Pago", "PENDING" to "Pendente").forEach { (status, label) ->
+                        FilterChip(selected = paymentStatus == status, onClick = { paymentStatus = status }, label = { Text(label) })
+                    }
+                }
                 if (errorMsg != null) {
                     Text(errorMsg.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
@@ -780,7 +816,11 @@ fun SaleRecordDialog(
                                 costAmountCents = cost,
                                 taxPercent = tax,
                                 commissionPercent = comm,
-                                saleDateMillis = existing?.saleDateMillis ?: System.currentTimeMillis()
+                                saleDateMillis = existing?.saleDateMillis ?: System.currentTimeMillis(),
+                                stockItemId = selectedStockItemId,
+                                paymentMethod = paymentMethod,
+                                account = account,
+                                paymentStatus = paymentStatus
                             )
                         )
                     }
@@ -937,13 +977,16 @@ fun BusinessSettingsDialog(
     onDismiss: () -> Unit,
     onSave: (businessName: String, initialBalanceCents: Long, minCashAlertCents: Long, taxRatePercent: Double) -> Unit,
     onLoadSampleData: () -> Unit,
-    onClearAllData: () -> Unit
+    onClearAllData: () -> Unit,
+    onExportBackup: () -> Unit,
+    onImportBackup: () -> Unit
 ) {
     var name by remember { mutableStateOf(current.businessName) }
     var initialText by remember { mutableStateOf(centsToInputText(current.initialBalanceCents)) }
     var minCashText by remember { mutableStateOf(centsToInputText(current.minCashAlertCents)) }
     var taxText by remember { mutableStateOf(current.taxRatePercent.toString()) }
     var confirmClear by remember { mutableStateOf(false) }
+    var confirmRestore by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
@@ -994,6 +1037,38 @@ fun BusinessSettingsDialog(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text("Gerenciamento de dados offline", style = MaterialTheme.typography.labelMedium)
+                OutlinedButton(onClick = onExportBackup, modifier = Modifier.fillMaxWidth()) {
+                    Text("Exportar backup JSON")
+                }
+                OutlinedButton(onClick = { confirmRestore = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Restaurar backup JSON")
+                }
+                if (confirmRestore) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                "A restauração substituirá todos os dados atuais por aqueles do arquivo. Exporte um backup antes de continuar.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { confirmRestore = false }, modifier = Modifier.weight(1f)) {
+                                    Text("Cancelar")
+                                }
+                                Button(onClick = {
+                                    confirmRestore = false
+                                    onImportBackup()
+                                }, modifier = Modifier.weight(1f)) {
+                                    Text("Escolher arquivo")
+                                }
+                            }
+                        }
+                    }
+                }
 
                 OutlinedButton(
                     onClick = {

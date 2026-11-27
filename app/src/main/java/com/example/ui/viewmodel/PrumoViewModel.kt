@@ -14,9 +14,12 @@ import com.example.model.SaleRecord
 import com.example.model.SellerProfile
 import com.example.model.SellerRankingItem
 import com.example.model.StockItem
+import com.example.model.StockMovement
 import com.example.model.StockMovementType
 import com.example.model.StockStatus
 import java.util.Calendar
+import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -69,12 +72,14 @@ data class PrumoDashboardData(
     val allCashEntries: List<CashEntry> = emptyList(),
     val monthCashEntries: List<CashEntry> = emptyList(),
     val stockItems: List<StockItem> = emptyList(),
+    val stockMovements: List<StockMovement> = emptyList(),
     val monthSales: List<SaleRecord> = emptyList(),
     val sellers: List<SellerProfile> = emptyList(),
     val monthFixedExpenses: List<FixedExpense> = emptyList(),
     // Executive & Cash metrics
     val realizedBalanceCents: Long = 0L,          // Saldo Atual Realizado (inicial + pagos)
-    val monthPredictedEndBalanceCents: Long = 0L, // Saldo Final Previsto do Mês (inicial + pagos + pendentes do mês)
+    val monthPredictedEndBalanceCents: Long = 0L, // Saldo Final Previsto do Mês
+    val monthInitialBalanceCents: Long = 0L,
     val monthPaidIncomeCents: Long = 0L,
     val monthPaidExpenseCents: Long = 0L,
     val monthPendingIncomeCents: Long = 0L,       // A Receber (Pendente)
@@ -101,6 +106,7 @@ private data class RawCollections(
     val settings: BusinessSettings,
     val cash: List<CashEntry>,
     val stock: List<StockItem>,
+    val movements: List<StockMovement>,
     val sales: List<SaleRecord>,
     val sellers: List<SellerProfile>
 )
@@ -115,14 +121,21 @@ class PrumoViewModel(
     private val _feedbackEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val feedbackEvents: SharedFlow<String> = _feedbackEvents.asSharedFlow()
 
-    private val rawCollectionsFlow = combine(
+    private val rawCollectionsBaseFlow = combine(
         repository.settingsFlow,
         repository.cashEntriesFlow,
         repository.stockItemsFlow,
         repository.salesFlow,
         repository.sellersFlow
     ) { settings, cash, stock, sales, sellers ->
-        RawCollections(settings, cash, stock, sales, sellers)
+        RawCollections(settings, cash, stock, emptyList(), sales, sellers)
+    }
+
+    private val rawCollectionsFlow = combine(
+        rawCollectionsBaseFlow,
+        repository.stockMovementsFlow
+    ) { raw, movements ->
+        raw.copy(movements = movements)
     }
 
     val dashboardState: StateFlow<PrumoDashboardData> = combine(
@@ -149,6 +162,21 @@ class PrumoViewModel(
         val settings = raw.settings
         val allCash = raw.cash
         val monthCash = allCash.filter { monthFilter.matches(it.dateMillis) }
+        val monthStart = Calendar.getInstance().apply {
+            set(Calendar.YEAR, monthFilter.year)
+            set(Calendar.MONTH, monthFilter.month)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        val paidBeforeMonth = allCash.filter {
+            it.dateMillis < monthStart && it.entryStatus == CashEntryStatus.PAID
+        }
+        val monthInitialBalance = settings.initialBalanceCents +
+            paidBeforeMonth.filter { it.entryType == CashEntryType.INCOME }.sumOf { it.amountCents } -
+            paidBeforeMonth.filter { it.entryType == CashEntryType.EXPENSE }.sumOf { it.amountCents }
 
         val allPaidIncome = allCash.filter { it.entryType == CashEntryType.INCOME && it.entryStatus == CashEntryStatus.PAID }
             .sumOf { it.amountCents }
@@ -167,7 +195,7 @@ class PrumoViewModel(
         val monthPartnerWithdrawals = monthCash.filter { it.isPartnerWithdrawal }
             .sumOf { it.amountCents }
 
-        val monthPredictedEndBalance = realizedBalance + monthPendingIncome - monthPendingExpense
+        val monthPredictedEndBalance = monthInitialBalance + monthPaidIncome + monthPendingIncome - monthPaidExpense - monthPendingExpense
 
         // 30-day day-by-day simulator/projection from today
         val dayMs = 24L * 60L * 60L * 1000L
@@ -259,7 +287,8 @@ class PrumoViewModel(
             val goal = profile?.monthlyGoalCents ?: 1_000_000L
             val commRate = profile?.commissionPercent ?: sellerSales.firstOrNull()?.commissionPercent ?: 5.0
             val estCommission = if (profile != null) {
-                (totalSold * (profile.commissionPercent / 100.0)).toLong()
+                BigDecimal.valueOf(totalSold).multiply(BigDecimal.valueOf(profile.commissionPercent))
+                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValueExact()
             } else {
                 sellerSales.sumOf { it.commissionCents }
             }
@@ -280,11 +309,13 @@ class PrumoViewModel(
             allCashEntries = allCash,
             monthCashEntries = monthCash,
             stockItems = sortedStock,
+            stockMovements = raw.movements,
             monthSales = monthSales,
             sellers = raw.sellers,
             monthFixedExpenses = monthFixed,
             realizedBalanceCents = realizedBalance,
             monthPredictedEndBalanceCents = monthPredictedEndBalance,
+            monthInitialBalanceCents = monthInitialBalance,
             monthPaidIncomeCents = monthPaidIncome,
             monthPaidExpenseCents = monthPaidExpense,
             monthPendingIncomeCents = monthPendingIncome,
@@ -322,8 +353,11 @@ class PrumoViewModel(
 
     fun saveCashEntry(entry: CashEntry) {
         viewModelScope.launch {
-            repository.saveCashEntry(entry)
-            _feedbackEvents.tryEmit(if (entry.id == 0L) "Lançamento salvo no caixa." else "Lançamento atualizado.")
+            val saved = repository.saveCashEntry(entry)
+            _feedbackEvents.tryEmit(
+                if (!saved) "Este lançamento pertence a uma venda. Edite a venda para manter os dados consistentes."
+                else if (entry.id == 0L) "Lançamento salvo no caixa." else "Lançamento atualizado."
+            )
         }
     }
 
@@ -337,8 +371,11 @@ class PrumoViewModel(
 
     fun deleteCashEntry(id: Long) {
         viewModelScope.launch {
-            repository.deleteCashEntry(id)
-            _feedbackEvents.tryEmit("Lançamento removido.")
+            val deleted = repository.deleteCashEntry(id)
+            _feedbackEvents.tryEmit(
+                if (deleted) "Lançamento removido."
+                else "Este lançamento pertence a uma venda. Exclua a venda para remover o recebimento vinculado."
+            )
         }
     }
 
@@ -362,15 +399,24 @@ class PrumoViewModel(
 
     fun deleteStockItem(id: Long) {
         viewModelScope.launch {
-            repository.deleteStockItem(id)
-            _feedbackEvents.tryEmit("Produto removido.")
+            val deleted = repository.deleteStockItem(id)
+            _feedbackEvents.tryEmit(
+                if (deleted) "Produto removido."
+                else "Não é possível excluir este produto: existem vendas vinculadas ao seu histórico."
+            )
         }
     }
 
     fun saveSale(sale: SaleRecord) {
         viewModelScope.launch {
-            repository.saveSale(sale)
-            _feedbackEvents.tryEmit(if (sale.id == 0L) "Venda registrada na DRE." else "Venda atualizada.")
+            try {
+                repository.saveSale(sale)
+                _feedbackEvents.tryEmit(if (sale.id == 0L) "Venda registrada no caixa, estoque e DRE." else "Venda atualizada.")
+            } catch (error: IllegalArgumentException) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível registrar a venda.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit("Falha ao registrar venda: ${error.message}")
+            }
         }
     }
 

@@ -9,6 +9,7 @@ import com.example.model.SaleRecord
 import com.example.model.SellerProfile
 import com.example.model.StockItem
 import com.example.model.StockMovementType
+import com.example.model.StockMovement
 import java.util.Calendar
 import kotlinx.coroutines.flow.Flow
 
@@ -19,9 +20,16 @@ class PrumoRepository(
     val settingsFlow: Flow<BusinessSettings> = settingsStore.settingsFlow
     val cashEntriesFlow: Flow<List<CashEntry>> = dao.observeCashEntries()
     val stockItemsFlow: Flow<List<StockItem>> = dao.observeStockItems()
+    val stockMovementsFlow: Flow<List<StockMovement>> = dao.observeStockMovements()
     val salesFlow: Flow<List<SaleRecord>> = dao.observeSales()
     val sellersFlow: Flow<List<SellerProfile>> = dao.observeSellers()
     val fixedExpensesFlow: Flow<List<FixedExpense>> = dao.observeFixedExpenses()
+
+    private val backupManager = PrumoBackupManager(dao, settingsStore)
+
+    suspend fun exportBackupJson(): String = backupManager.exportJson()
+
+    suspend fun restoreBackupJson(json: String) = backupManager.restoreJson(json)
 
     suspend fun updateSettings(
         businessName: String,
@@ -32,67 +40,86 @@ class PrumoRepository(
         settingsStore.updateSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent)
     }
 
-    suspend fun saveCashEntry(entry: CashEntry) {
-        if (entry.id == 0L) {
-            dao.insertCashEntry(entry)
-        } else {
-            dao.updateCashEntry(entry)
-        }
+    suspend fun saveCashEntry(entry: CashEntry): Boolean {
+        if (entry.saleId != null) return false
+        if (entry.id == 0L) dao.insertCashEntry(entry) else dao.updateCashEntry(entry)
+        return true
     }
 
     suspend fun markCashEntryStatus(id: Long, status: CashEntryStatus) {
-        dao.updateCashEntryStatus(id, status.name)
+        dao.updateCashEntryStatusAtomic(id, status.name)
     }
 
-    suspend fun deleteCashEntry(id: Long) {
+    suspend fun deleteCashEntry(id: Long): Boolean {
+        val entry = dao.cashEntryById(id)
+        if (entry?.saleId != null) return false
         dao.deleteCashEntryById(id)
+        return true
     }
 
     suspend fun saveStockItem(item: StockItem) {
         if (item.id == 0L) {
-            dao.insertStockItem(item)
+            val openingMovement = if (item.quantity > 0L) StockMovement(
+                stockItemId = 0L, sku = item.sku, productName = item.name,
+                movementType = StockMovementType.PURCHASE.name, quantity = item.quantity,
+                unitCostCents = item.unitCostCents, referenceNote = "Saldo inicial do cadastro",
+                dateMillis = System.currentTimeMillis()
+            ) else null
+            dao.insertStockItemWithOpeningMovement(item, openingMovement)
         } else {
-            dao.updateStockItem(item)
+            val current = dao.stockItemById(item.id)
+            val movement = if (current != null && current.quantity != item.quantity) StockMovement(
+                stockItemId = item.id, sku = item.sku, productName = item.name,
+                movementType = StockMovementType.ADJUSTMENT.name,
+                quantity = kotlin.math.abs(item.quantity - current.quantity),
+                unitCostCents = item.unitCostCents, referenceNote = "Ajuste manual de saldo",
+                dateMillis = System.currentTimeMillis()
+            ) else null
+            dao.updateStockItemWithMovement(item, movement)
         }
     }
-
     suspend fun applyStockMovement(item: StockItem, movementType: StockMovementType, units: Long): Boolean {
         if (units <= 0L) return false
+        val current = dao.stockItemById(item.id) ?: return false
         val updated = when (movementType) {
-            StockMovementType.PURCHASE -> item.copy(quantity = item.quantity + units)
+            StockMovementType.PURCHASE -> current.copy(quantity = current.quantity + units)
             StockMovementType.SALE -> {
-                if (item.quantity < units) return false
-                item.copy(
-                    quantity = item.quantity - units,
-                    soldUnitsCount = item.soldUnitsCount + units
-                )
+                if (current.quantity < units) return false
+                current.copy(quantity = current.quantity - units, soldUnitsCount = current.soldUnitsCount + units)
             }
             StockMovementType.LOSS -> {
-                if (item.quantity < units) return false
-                item.copy(
-                    quantity = item.quantity - units,
-                    lossUnitsCount = item.lossUnitsCount + units
-                )
+                if (current.quantity < units) return false
+                current.copy(quantity = current.quantity - units, lossUnitsCount = current.lossUnitsCount + units)
             }
+            StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
         }
-        dao.updateStockItem(updated)
+        dao.updateStockItemWithMovement(updated, StockMovement(
+            stockItemId = current.id, sku = current.sku, productName = current.name,
+            movementType = movementType.name, quantity = units,
+            unitCostCents = current.unitCostCents,
+            referenceNote = when (movementType) {
+                StockMovementType.PURCHASE -> "Compra / reposição"
+                StockMovementType.SALE -> "Saída manual de estoque"
+                StockMovementType.LOSS -> "Perda / avaria"
+                StockMovementType.ADJUSTMENT -> "Ajuste manual de saldo"
+            },
+            dateMillis = System.currentTimeMillis()
+        ))
         return true
     }
 
-    suspend fun deleteStockItem(id: Long) {
+    suspend fun deleteStockItem(id: Long): Boolean {
+        if (dao.countSalesForStockItem(id) > 0) return false
         dao.deleteStockItemById(id)
+        return true
     }
 
     suspend fun saveSale(sale: SaleRecord) {
-        if (sale.id == 0L) {
-            dao.insertSale(sale)
-        } else {
-            dao.updateSale(sale)
-        }
+        dao.saveSaleAtomic(sale)
     }
 
     suspend fun deleteSale(id: Long) {
-        dao.deleteSaleById(id)
+        dao.deleteSaleAtomic(id)
     }
 
     suspend fun saveSeller(seller: SellerProfile) {
@@ -122,6 +149,7 @@ class PrumoRepository(
     suspend fun clearAllData() {
         dao.clearCashEntries()
         dao.clearStockItems()
+        dao.clearStockMovements()
         dao.clearSales()
         dao.clearSellers()
         dao.clearFixedExpenses()

@@ -51,6 +51,7 @@ import com.example.ui.theme.PrumoGreen
 import com.example.ui.theme.PrumoGreenSoft
 import com.example.ui.viewmodel.PrumoDashboardData
 import com.example.util.formatBrlFromCents
+import com.example.util.formatDateShort
 import java.util.Locale
 
 private val stockPtBr = Locale.Builder().setLanguage("pt").setRegion("BR").build()
@@ -209,6 +210,34 @@ fun StockScreen(
                     onEdit = { onEditItem(item) },
                     onDelete = { onDeleteItem(item.id) }
                 )
+            }
+        }
+
+        item {
+            Text("Histórico de movimentações", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+        if (data.stockMovements.isEmpty()) {
+            item { Text("Nenhuma movimentação registrada.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        } else {
+            items(data.stockMovements, key = { "movement-${it.id}" }) { movement ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        val movementLabel = when (movement.movementType) {
+                            "PURCHASE" -> "Compra"
+                            "SALE" -> "Venda / saída"
+                            "LOSS" -> "Perda"
+                            "ADJUSTMENT" -> "Ajuste / estorno"
+                            else -> movement.movementType
+                        }
+                        Text("${movement.productName} · ${movement.sku}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                        Text("${movementLabel} · Quantidade: ${movement.quantity} · ${movement.referenceNote}", style = MaterialTheme.typography.bodySmall)
+                        Text(formatDateShort(movement.dateMillis), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
         }
     }

@@ -3,6 +3,7 @@ package com.example
 import com.example.model.DreSummary
 import com.example.model.StockItem
 import com.example.model.StockStatus
+import com.example.model.SaleRecord
 import com.example.util.parseBrlInputToCents
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -57,4 +58,27 @@ class PrumoLogicTest {
         assertEquals(55.0, dre.contributionMarginPercent, 0.01)
         assertEquals(25.0, dre.netProfitPercent, 0.01)
     }
+    @Test
+    fun saleFinancialValues_roundHalfUpWithBigDecimal() {
+        val sale = SaleRecord(
+            description = "Serviço", clientName = "Cliente", sellerName = "Vendedor",
+            grossAmountCents = 101L, costAmountCents = 20L,
+            taxPercent = 2.5, commissionPercent = 2.5, saleDateMillis = 1L
+        )
+        assertEquals(3L, sale.taxCents)
+        assertEquals(3L, sale.commissionCents)
+        assertEquals(75L, sale.contributionMarginCents)
+    }
+
+    @Test
+    fun stockTurnover_usesAverageInventory() {
+        val item = StockItem(
+            id = 1L, sku = "SKU-1", name = "Produto", category = "Mercadorias",
+            quantity = 6L, minStock = 1L, leadTimeDays = 1L, avgDailySales = 1.0,
+            unitCostCents = 100L, unitPriceCents = 200L, soldUnitsCount = 16L,
+            initialQuantity = 10L
+        )
+        assertEquals(2.0, item.turnoverRatio, 0.0001)
+    }
+
 }
