@@ -44,8 +44,6 @@ abstract class PrumoDatabase : RoomDatabase() {
                         dateMillis INTEGER NOT NULL
                     )
                 """.trimIndent())
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_cash_entries_saleId ON cash_entries(saleId)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_stock_movements_stockItemId ON stock_movements(stockItemId)")
             }
         }
 
