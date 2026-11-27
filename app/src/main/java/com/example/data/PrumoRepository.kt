@@ -25,6 +25,12 @@ class PrumoRepository(
     val sellersFlow: Flow<List<SellerProfile>> = dao.observeSellers()
     val fixedExpensesFlow: Flow<List<FixedExpense>> = dao.observeFixedExpenses()
 
+    private val backupManager = PrumoBackupManager(dao, settingsStore)
+
+    suspend fun exportBackupJson(): String = backupManager.exportJson()
+
+    suspend fun restoreBackupJson(json: String) = backupManager.restoreJson(json)
+
     suspend fun updateSettings(
         businessName: String,
         initialBalanceCents: Long,
