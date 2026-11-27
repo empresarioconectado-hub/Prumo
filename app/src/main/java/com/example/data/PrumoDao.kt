@@ -19,6 +19,13 @@ interface PrumoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertCashEntries(entries: List<CashEntry>)
     @Update suspend fun updateCashEntry(entry: CashEntry)
     @Query("UPDATE cash_entries SET status = :status WHERE id = :id") suspend fun updateCashEntryStatus(id: Long, status: String)
+
+    @Transaction
+    suspend fun updateCashEntryStatusAtomic(id: Long, status: String) {
+        val entry = cashEntryById(id) ?: return
+        updateCashEntryStatus(id, status)
+        entry.saleId?.let { updateSalePaymentStatus(it, status) }
+    }
     @Query("DELETE FROM cash_entries WHERE id = :id") suspend fun deleteCashEntryById(id: Long)
     @Query("DELETE FROM cash_entries WHERE saleId = :saleId") suspend fun deleteCashEntriesForSale(saleId: Long)
     @Query("DELETE FROM cash_entries") suspend fun clearCashEntries()
