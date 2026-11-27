@@ -78,7 +78,8 @@ data class PrumoDashboardData(
     val monthFixedExpenses: List<FixedExpense> = emptyList(),
     // Executive & Cash metrics
     val realizedBalanceCents: Long = 0L,          // Saldo Atual Realizado (inicial + pagos)
-    val monthPredictedEndBalanceCents: Long = 0L, // Saldo Final Previsto do Mês (inicial + pagos + pendentes do mês)
+    val monthPredictedEndBalanceCents: Long = 0L, // Saldo Final Previsto do Mês
+    val monthInitialBalanceCents: Long = 0L,
     val monthPaidIncomeCents: Long = 0L,
     val monthPaidExpenseCents: Long = 0L,
     val monthPendingIncomeCents: Long = 0L,       // A Receber (Pendente)
