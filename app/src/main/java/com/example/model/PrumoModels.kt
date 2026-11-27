@@ -1,5 +1,6 @@
 package com.example.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
@@ -62,7 +63,7 @@ data class StockItem(
     val unitPriceCents: Long,
     val soldUnitsCount: Long = 0L,
     val lossUnitsCount: Long = 0L,
-    val initialQuantity: Long = quantity
+    @ColumnInfo(defaultValue = "0") val initialQuantity: Long = quantity
 ) {
     val reorderPoint: Long get() = ceil(avgDailySales * leadTimeDays).toLong() + minStock
     val status: StockStatus get() = when {
@@ -110,9 +111,9 @@ data class SaleRecord(
     val commissionPercent: Double,
     val saleDateMillis: Long,
     val stockItemId: Long? = null,
-    val paymentMethod: String = "Pix",
-    val account: String = "Conta Principal",
-    val paymentStatus: String = "PAID"
+    @ColumnInfo(defaultValue = "'Pix'") val paymentMethod: String = "Pix",
+    @ColumnInfo(defaultValue = "'Conta Principal'") val account: String = "Conta Principal",
+    @ColumnInfo(defaultValue = "'PAID'") val paymentStatus: String = "PAID"
 ) {
     val taxCents: Long get() = grossAmountCents.percentOf(taxPercent)
     val commissionCents: Long get() = grossAmountCents.percentOf(commissionPercent)
