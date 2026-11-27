@@ -63,7 +63,14 @@ interface PrumoDao {
 
     @Transaction
     suspend fun saveSaleAtomic(sale: SaleRecord) {
+        require(sale.quantity > 0L) { "A quantidade da venda deve ser maior que zero." }
+        require(sale.grossAmountCents > 0L && sale.costAmountCents >= 0L) { "Os valores da venda são inválidos." }
+        require(sale.taxPercent in 0.0..100.0 && sale.commissionPercent in 0.0..100.0) { "Percentuais inválidos." }
+        require(sale.paymentStatus == CashEntryStatus.PAID.name || sale.paymentStatus == CashEntryStatus.PENDING.name) {
+            "Status de recebimento inválido."
+        }
         val previous = if (sale.id != 0L) saleById(sale.id) else null
+        if (sale.id != 0L) require(previous != null) { "Venda não encontrada para edição." }
         if (previous != null) reverseSaleStock(previous)
         val id = if (sale.id == 0L) insertSale(sale) else { updateSale(sale); sale.id }
         val saved = sale.copy(id = id)
