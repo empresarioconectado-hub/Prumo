@@ -617,6 +617,10 @@ fun SaleRecordDialog(
     var commText by remember {
         mutableStateOf((existing?.commissionPercent ?: sellers.firstOrNull()?.commissionPercent ?: 5.0).toString())
     }
+    var selectedStockItemId by remember { mutableStateOf(existing?.stockItemId) }
+    var paymentMethod by remember { mutableStateOf(existing?.paymentMethod ?: "Pix") }
+    var account by remember { mutableStateOf(existing?.account ?: PrumoConstants.cashAccounts.first()) }
+    var paymentStatus by remember { mutableStateOf(existing?.paymentStatus ?: "PAID") }
     var selectedUnitPriceCents by remember { mutableStateOf<Long?>(null) }
     var selectedUnitCostCents by remember { mutableStateOf<Long?>(null) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
@@ -641,8 +645,9 @@ fun SaleRecordDialog(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         stockItems.take(8).forEach { item ->
                             FilterChip(
-                                selected = description == item.name,
+                                selected = selectedStockItemId == item.id,
                                 onClick = {
+                                    selectedStockItemId = item.id
                                     description = item.name
                                     selectedUnitPriceCents = item.unitPriceCents
                                     selectedUnitCostCents = item.unitCostCents
@@ -751,6 +756,24 @@ fun SaleRecordDialog(
                     )
                 }
 
+                Text("Forma de pagamento", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PrumoConstants.paymentMethods.forEach { method ->
+                        FilterChip(selected = paymentMethod == method, onClick = { paymentMethod = method }, label = { Text(method) })
+                    }
+                }
+                Text("Conta de recebimento", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PrumoConstants.cashAccounts.forEach { acc ->
+                        FilterChip(selected = account == acc, onClick = { account = acc }, label = { Text(acc) })
+                    }
+                }
+                Text("Situação do recebimento", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("PAID" to "Pago", "PENDING" to "Pendente").forEach { (status, label) ->
+                        FilterChip(selected = paymentStatus == status, onClick = { paymentStatus = status }, label = { Text(label) })
+                    }
+                }
                 if (errorMsg != null) {
                     Text(errorMsg.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
@@ -780,7 +803,11 @@ fun SaleRecordDialog(
                                 costAmountCents = cost,
                                 taxPercent = tax,
                                 commissionPercent = comm,
-                                saleDateMillis = existing?.saleDateMillis ?: System.currentTimeMillis()
+                                saleDateMillis = existing?.saleDateMillis ?: System.currentTimeMillis(),
+                                stockItemId = selectedStockItemId,
+                                paymentMethod = paymentMethod,
+                                account = account,
+                                paymentStatus = paymentStatus
                             )
                         )
                     }
