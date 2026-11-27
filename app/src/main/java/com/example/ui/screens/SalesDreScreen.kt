@@ -81,6 +81,8 @@ fun SalesDreScreen(
     onAddFixedExpense: () -> Unit,
     onEditFixedExpense: (FixedExpense) -> Unit,
     onDeleteFixedExpense: (Long) -> Unit,
+    onExportDrePdf: () -> Unit,
+    onExportCashCsv: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var subTab by remember { mutableIntStateOf(0) }
@@ -117,6 +119,22 @@ fun SalesDreScreen(
                     },
                     onAction = if (subTab == 2) onAddFixedExpense else onAddSale
                 )
+            }
+
+            if (subTab == 0) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(onClick = onExportDrePdf, modifier = Modifier.weight(1f)) {
+                            Text("Exportar DRE PDF")
+                        }
+                        OutlinedButton(onClick = onExportCashCsv, modifier = Modifier.weight(1f)) {
+                            Text("Exportar Caixa CSV")
+                        }
+                    }
+                }
             }
 
             when (subTab) {
