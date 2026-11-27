@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PrumoDao {
     @Query("SELECT * FROM cash_entries ORDER BY dateMillis DESC, id DESC") fun observeCashEntries(): Flow<List<CashEntry>>
-    @Query("SELECT * FROM cash_entries WHERE saleId = :saleId LIMIT 1") suspend fun cashEntryForSale(saleId: Long): CashEntry?
+    @Query("SELECT * FROM cash_entries WHERE id = :id LIMIT 1") suspend fun cashEntryById(id: Long): CashEntry?\n    @Query("SELECT * FROM cash_entries WHERE saleId = :saleId LIMIT 1") suspend fun cashEntryForSale(saleId: Long): CashEntry?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertCashEntry(entry: CashEntry): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertCashEntries(entries: List<CashEntry>)
     @Update suspend fun updateCashEntry(entry: CashEntry)
@@ -35,7 +35,7 @@ interface PrumoDao {
     @Query("DELETE FROM stock_movements") suspend fun clearStockMovements()
 
     @Query("SELECT * FROM sale_records ORDER BY saleDateMillis DESC, id DESC") fun observeSales(): Flow<List<SaleRecord>>
-    @Query("SELECT * FROM sale_records WHERE id = :id LIMIT 1") suspend fun saleById(id: Long): SaleRecord?
+    @Query("SELECT * FROM sale_records WHERE id = :id LIMIT 1") suspend fun saleById(id: Long): SaleRecord?\n    @Query("UPDATE sale_records SET paymentStatus = :status WHERE id = :saleId") suspend fun updateSalePaymentStatus(saleId: Long, status: String)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSale(sale: SaleRecord): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSales(sales: List<SaleRecord>)
     @Update suspend fun updateSale(sale: SaleRecord)
