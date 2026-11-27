@@ -986,6 +986,7 @@ fun BusinessSettingsDialog(
     var minCashText by remember { mutableStateOf(centsToInputText(current.minCashAlertCents)) }
     var taxText by remember { mutableStateOf(current.taxRatePercent.toString()) }
     var confirmClear by remember { mutableStateOf(false) }
+    var confirmRestore by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
@@ -1039,8 +1040,34 @@ fun BusinessSettingsDialog(
                 OutlinedButton(onClick = onExportBackup, modifier = Modifier.fillMaxWidth()) {
                     Text("Exportar backup JSON")
                 }
-                OutlinedButton(onClick = onImportBackup, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = { confirmRestore = true }, modifier = Modifier.fillMaxWidth()) {
                     Text("Restaurar backup JSON")
+                }
+                if (confirmRestore) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                "A restauração substituirá todos os dados atuais por aqueles do arquivo. Exporte um backup antes de continuar.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { confirmRestore = false }, modifier = Modifier.weight(1f)) {
+                                    Text("Cancelar")
+                                }
+                                Button(onClick = {
+                                    confirmRestore = false
+                                    onImportBackup()
+                                }, modifier = Modifier.weight(1f)) {
+                                    Text("Escolher arquivo")
+                                }
+                            }
+                        }
+                    }
                 }
 
                 OutlinedButton(
