@@ -66,6 +66,7 @@ import com.example.util.formatPercent
 @Composable
 fun OverviewScreen(
     data: PrumoDashboardData,
+    hideValues: Boolean = false,
     onQuickIncome: () -> Unit,
     onQuickExpense: () -> Unit,
     onQuickSale: () -> Unit,
@@ -158,8 +159,8 @@ fun OverviewScreen(
                 val reasons = buildList {
                     if (data.isLowCashAlert) {
                         add(
-                            "Projeção de 30 dias atinge ${formatBrlFromCents(data.minProjected30dCents)} " +
-                                "(abaixo do mínimo de segurança ${formatBrlFromCents(data.settings.minCashAlertCents)})."
+                            "Projeção de 30 dias atinge ${privacyMoney(data.minProjected30dCents, hideValues)} " +
+                                "(abaixo do mínimo de segurança ${privacyMoney(data.settings.minCashAlertCents, hideValues)})."
                         )
                     }
                     if (hasStockAlerts) {
@@ -260,7 +261,7 @@ fun OverviewScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Projeção de 30 dias acima do mínimo (${formatBrlFromCents(data.settings.minCashAlertCents)}) e nenhum SKU crítico.",
+                                text = "Projeção de 30 dias acima do mínimo (${privacyMoney(data.settings.minCashAlertCents, hideValues)}) e nenhum SKU crítico.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -296,7 +297,7 @@ fun OverviewScreen(
                                 color = Color.White.copy(alpha = 0.85f)
                             )
                             Text(
-                                text = formatBrlFromCents(data.realizedBalanceCents),
+                                text = privacyMoney(data.realizedBalanceCents, hideValues),
                                 style = MaterialTheme.typography.displayMedium,
                                 color = Color.White,
                                 modifier = Modifier.testTag("overview_realized_balance")
@@ -321,12 +322,12 @@ fun OverviewScreen(
                     ) {
                         HeroMiniMetric(
                             label = "Saldo Final Previsto",
-                            value = formatBrlFromCents(data.monthPredictedEndBalanceCents),
+                            value = privacyMoney(data.monthPredictedEndBalanceCents, hideValues),
                             modifier = Modifier.weight(1f)
                         )
                         HeroMiniMetric(
                             label = "A Receber / A Pagar",
-                            value = "${formatBrlFromCents(data.monthPendingIncomeCents, false)} / ${formatBrlFromCents(data.monthPendingExpenseCents, false)}",
+                            value = "${privacyMoney(data.monthPendingIncomeCents, hideValues, false)} / ${privacyMoney(data.monthPendingExpenseCents, hideValues, false)}",
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -342,7 +343,7 @@ fun OverviewScreen(
             ) {
                 ExecutiveKpiCard(
                     title = "Faturamento Bruto",
-                    value = formatBrlFromCents(data.dreMonth.grossRevenueCents),
+                    value = privacyMoney(data.dreMonth.grossRevenueCents, hideValues),
                     subtitle = "${data.monthSales.size} venda(s) no mês",
                     valueColor = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
@@ -352,7 +353,7 @@ fun OverviewScreen(
                 )
                 ExecutiveKpiCard(
                     title = "Lucro Líquido do Mês",
-                    value = formatBrlFromCents(data.dreMonth.netProfitCents),
+                    value = privacyMoney(data.dreMonth.netProfitCents, hideValues),
                     subtitle = "Margem ${formatPercent(data.dreMonth.netProfitPercent)}",
                     valueColor = if (data.dreMonth.netProfitCents >= 0L) MaterialTheme.colorScheme.primary else PrumoDanger,
                     modifier = Modifier
@@ -445,7 +446,7 @@ fun OverviewScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Mínimo projetado: ${formatBrlFromCents(data.minProjected30dCents)}",
+                                text = "Mínimo projetado: ${privacyMoney(data.minProjected30dCents, hideValues)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -489,7 +490,7 @@ fun OverviewScreen(
                 PillarNavCard(
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
                     title = "Vendas, Metas & DRE Gerencial",
-                    metric = "EBITDA ${formatBrlFromCents(data.dreMonth.operatingProfitEbitdaCents)}",
+                    metric = "EBITDA ${privacyMoney(data.dreMonth.operatingProfitEbitdaCents, hideValues)}",
                     onClick = onOpenDreTab
                 )
             }
@@ -649,3 +650,7 @@ private fun PillarNavCard(
         }
     }
 }
+
+
+private fun privacyMoney(cents: Long, hidden: Boolean, decimals: Boolean = true): String =
+    if (hidden) "••••••" else formatBrlFromCents(cents, includeDecimals = decimals)
