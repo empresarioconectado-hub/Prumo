@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PrumoDao {
-    @Query("SELECT * FROM cash_entries ORDER BY dateMillis DESC, id DESC") fun observeCashEntries(): Flow<List<CashEntry>>
+    @Query("SELECT * FROM cash_entries ORDER BY dateMillis DESC, id DESC") fun observeCashEntries(): Flow<List<CashEntry>>\n    @Query("SELECT * FROM cash_entries") suspend fun allCashEntries(): List<CashEntry>
     @Query("SELECT * FROM cash_entries WHERE id = :id LIMIT 1") suspend fun cashEntryById(id: Long): CashEntry?\n    @Query("SELECT * FROM cash_entries WHERE saleId = :saleId LIMIT 1") suspend fun cashEntryForSale(saleId: Long): CashEntry?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertCashEntry(entry: CashEntry): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertCashEntries(entries: List<CashEntry>)
@@ -21,7 +21,7 @@ interface PrumoDao {
     @Query("DELETE FROM cash_entries WHERE saleId = :saleId") suspend fun deleteCashEntriesForSale(saleId: Long)
     @Query("DELETE FROM cash_entries") suspend fun clearCashEntries()
 
-    @Query("SELECT * FROM stock_items ORDER BY name ASC") fun observeStockItems(): Flow<List<StockItem>>
+    @Query("SELECT * FROM stock_items ORDER BY name ASC") fun observeStockItems(): Flow<List<StockItem>>\n    @Query("SELECT * FROM stock_items") suspend fun allStockItems(): List<StockItem>
     @Query("SELECT * FROM stock_items WHERE id = :id LIMIT 1") suspend fun stockItemById(id: Long): StockItem?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockItem(item: StockItem): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockItems(items: List<StockItem>)
@@ -29,12 +29,12 @@ interface PrumoDao {
     @Query("DELETE FROM stock_items WHERE id = :id") suspend fun deleteStockItemById(id: Long)
     @Query("DELETE FROM stock_items") suspend fun clearStockItems()
 
-    @Query("SELECT * FROM stock_movements ORDER BY dateMillis DESC, id DESC") fun observeStockMovements(): Flow<List<StockMovement>>
+    @Query("SELECT * FROM stock_movements ORDER BY dateMillis DESC, id DESC") fun observeStockMovements(): Flow<List<StockMovement>>\n    @Query("SELECT * FROM stock_movements") suspend fun allStockMovements(): List<StockMovement>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockMovement(movement: StockMovement): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockMovements(movements: List<StockMovement>)
     @Query("DELETE FROM stock_movements") suspend fun clearStockMovements()
 
-    @Query("SELECT * FROM sale_records ORDER BY saleDateMillis DESC, id DESC") fun observeSales(): Flow<List<SaleRecord>>
+    @Query("SELECT * FROM sale_records ORDER BY saleDateMillis DESC, id DESC") fun observeSales(): Flow<List<SaleRecord>>\n    @Query("SELECT * FROM sale_records") suspend fun allSales(): List<SaleRecord>
     @Query("SELECT * FROM sale_records WHERE id = :id LIMIT 1") suspend fun saleById(id: Long): SaleRecord?\n    @Query("UPDATE sale_records SET paymentStatus = :status WHERE id = :saleId") suspend fun updateSalePaymentStatus(saleId: Long, status: String)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSale(sale: SaleRecord): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSales(sales: List<SaleRecord>)
@@ -94,16 +94,31 @@ interface PrumoDao {
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSellers(sellers: List<SellerProfile>)
-    @Query("SELECT * FROM seller_profiles ORDER BY name ASC") fun observeSellers(): Flow<List<SellerProfile>>
+    @Query("SELECT * FROM seller_profiles ORDER BY name ASC") fun observeSellers(): Flow<List<SellerProfile>>\n    @Query("SELECT * FROM seller_profiles") suspend fun allSellers(): List<SellerProfile>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSeller(seller: SellerProfile): Long
     @Update suspend fun updateSeller(seller: SellerProfile)
     @Query("DELETE FROM seller_profiles WHERE id = :id") suspend fun deleteSellerById(id: Long)
     @Query("DELETE FROM seller_profiles") suspend fun clearSellers()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertFixedExpenses(expenses: List<FixedExpense>)
-    @Query("SELECT * FROM fixed_expenses ORDER BY dateMillis DESC, id DESC") fun observeFixedExpenses(): Flow<List<FixedExpense>>
+    @Query("SELECT * FROM fixed_expenses ORDER BY dateMillis DESC, id DESC") fun observeFixedExpenses(): Flow<List<FixedExpense>>\n    @Query("SELECT * FROM fixed_expenses") suspend fun allFixedExpenses(): List<FixedExpense>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertFixedExpense(expense: FixedExpense): Long
     @Update suspend fun updateFixedExpense(expense: FixedExpense)
     @Query("DELETE FROM fixed_expenses WHERE id = :id") suspend fun deleteFixedExpenseById(id: Long)
     @Query("DELETE FROM fixed_expenses") suspend fun clearFixedExpenses()
+
+    @Transaction
+    suspend fun replaceAllData(
+        cash: List<CashEntry>, stock: List<StockItem>, sales: List<SaleRecord>,
+        sellers: List<SellerProfile>, expenses: List<FixedExpense>, movements: List<StockMovement>
+    ) {
+        clearCashEntries(); clearStockItems(); clearSales(); clearSellers(); clearFixedExpenses(); clearStockMovements()
+        if (cash.isNotEmpty()) insertCashEntries(cash)
+        if (stock.isNotEmpty()) insertStockItems(stock)
+        if (sales.isNotEmpty()) insertSales(sales)
+        if (sellers.isNotEmpty()) insertSellers(sellers)
+        if (expenses.isNotEmpty()) insertFixedExpenses(expenses)
+        if (movements.isNotEmpty()) insertStockMovements(movements)
+    }
+
 }
