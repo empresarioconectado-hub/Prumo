@@ -399,8 +399,14 @@ class PrumoViewModel(
 
     fun saveSale(sale: SaleRecord) {
         viewModelScope.launch {
-            repository.saveSale(sale)
-            _feedbackEvents.tryEmit(if (sale.id == 0L) "Venda registrada na DRE." else "Venda atualizada.")
+            try {
+                repository.saveSale(sale)
+                _feedbackEvents.tryEmit(if (sale.id == 0L) "Venda registrada no caixa, estoque e DRE." else "Venda atualizada.")
+            } catch (error: IllegalArgumentException) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível registrar a venda.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit("Falha ao registrar venda: ${error.message}")
+            }
         }
     }
 
