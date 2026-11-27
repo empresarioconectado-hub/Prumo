@@ -649,7 +649,7 @@ fun SaleRecordDialog(
                             onClick = { selectedStockItemId = null; selectedUnitPriceCents = null; selectedUnitCostCents = null },
                             label = { Text("Sem vínculo") }
                         )
-                        stockItems.take(8).forEach { item ->
+                        stockItems.forEach { item ->
                             FilterChip(
                                 selected = selectedStockItemId == item.id,
                                 onClick = {
