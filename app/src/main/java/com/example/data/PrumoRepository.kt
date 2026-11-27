@@ -87,8 +87,7 @@ class PrumoRepository(
             }
             StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
         }
-        dao.updateStockItem(updated)
-        dao.insertStockMovement(StockMovement(
+        dao.updateStockItemWithMovement(updated, StockMovement(
             stockItemId = current.id, sku = current.sku, productName = current.name,
             movementType = movementType.name, quantity = units,
             unitCostCents = current.unitCostCents,
