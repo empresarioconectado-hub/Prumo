@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -81,6 +83,7 @@ import com.example.ui.screens.OverviewScreen
 import com.example.ui.screens.SalesDreScreen
 import com.example.ui.screens.StockScreen
 import com.example.ui.viewmodel.PrumoViewModel
+import com.example.util.PrumoReportExporter
 import kotlinx.coroutines.launch
 
 private const val ROUTE_OVERVIEW = "overview"
@@ -125,6 +128,7 @@ fun PrumoApp() {
     )
 
     val dashboardData by viewModel.dashboardState.collectAsStateWithLifecycle()
+    var hideValues by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val backupRepository = remember(context) {
@@ -142,6 +146,34 @@ fun PrumoApp() {
                 snackbarHostState.showSnackbar("Backup exportado com sucesso.")
             } catch (error: Exception) {
                 snackbarHostState.showSnackbar("Falha ao exportar backup: ${error.message}")
+            }
+        }
+    }
+    val exportDrePdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null) coroutineScope.launch {
+            try {
+                val output = context.contentResolver.openOutputStream(uri)
+                    ?: error("Não foi possível abrir o arquivo de destino.")
+                output.use { PrumoReportExporter.writeDrePdf(it, dashboardData) }
+                snackbarHostState.showSnackbar("DRE exportada em PDF.")
+            } catch (error: Exception) {
+                snackbarHostState.showSnackbar("Falha ao exportar PDF: ${error.message}")
+            }
+        }
+    }
+    val exportCashCsvLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri != null) coroutineScope.launch {
+            try {
+                val output = context.contentResolver.openOutputStream(uri)
+                    ?: error("Não foi possível abrir o arquivo de destino.")
+                output.use { it.write(PrumoReportExporter.cashEntriesCsv(dashboardData).toByteArray(Charsets.UTF_8)) }
+                snackbarHostState.showSnackbar("Fluxo de caixa exportado em CSV.")
+            } catch (error: Exception) {
+                snackbarHostState.showSnackbar("Falha ao exportar CSV: ${error.message}")
             }
         }
     }
@@ -223,6 +255,15 @@ fun PrumoApp() {
                     },
                     actions = {
                         IconButton(
+                            onClick = { hideValues = !hideValues },
+                            modifier = Modifier.minimumInteractiveComponentSize()
+                        ) {
+                            Icon(
+                                imageVector = if (hideValues) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (hideValues) "Mostrar valores" else "Ocultar valores"
+                            )
+                        }
+                        IconButton(
                             onClick = { activeDialog = ActiveDialog.BusinessSettingsForm },
                             modifier = Modifier
                                 .minimumInteractiveComponentSize()
@@ -296,6 +337,7 @@ fun PrumoApp() {
                         composable(ROUTE_OVERVIEW) {
                             OverviewScreen(
                                 data = dashboardData,
+                                hideValues = hideValues,
                                 onQuickIncome = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.INCOME) },
                                 onQuickExpense = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.EXPENSE) },
                                 onQuickSale = { activeDialog = ActiveDialog.SaleForm(null) },
@@ -309,6 +351,7 @@ fun PrumoApp() {
                         composable(ROUTE_CASH) {
                             CashFlowScreen(
                                 data = dashboardData,
+                                hideValues = hideValues,
                                 onShiftMonth = viewModel::shiftMonth,
                                 onAddEntry = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.INCOME) },
                                 onEditEntry = { activeDialog = ActiveDialog.CashEntryForm(it, it.entryType) },
@@ -328,6 +371,7 @@ fun PrumoApp() {
                         composable(ROUTE_SALES_DRE) {
                             SalesDreScreen(
                                 data = dashboardData,
+                                hideValues = hideValues,
                                 onShiftMonth = viewModel::shiftMonth,
                                 onAddSale = { activeDialog = ActiveDialog.SaleForm(null) },
                                 onEditSale = { activeDialog = ActiveDialog.SaleForm(it) },
@@ -337,7 +381,9 @@ fun PrumoApp() {
                                 onDeleteSeller = viewModel::deleteSeller,
                                 onAddFixedExpense = { activeDialog = ActiveDialog.FixedExpenseForm(null) },
                                 onEditFixedExpense = { activeDialog = ActiveDialog.FixedExpenseForm(it) },
-                                onDeleteFixedExpense = viewModel::deleteFixedExpense
+                                onDeleteFixedExpense = viewModel::deleteFixedExpense,
+                                onExportDrePdf = { exportDrePdfLauncher.launch("prumo-dre-${System.currentTimeMillis()}.pdf") },
+                                onExportCashCsv = { exportCashCsvLauncher.launch("prumo-caixa-${System.currentTimeMillis()}.csv") }
                             )
                         }
                     }

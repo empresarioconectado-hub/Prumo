@@ -1070,6 +1070,23 @@ fun BusinessSettingsDialog(
                     }
                 }
 
+                Text(
+                    "Privacidade e condições de uso",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                TextButton(onClick = {
+                    uriHandler.openUri("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/politica-de-privacidade.md")
+                }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Política de Privacidade")
+                }
+                TextButton(onClick = {
+                    uriHandler.openUri("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/termos-de-uso.md")
+                }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Termos de Uso")
+                }
+
                 OutlinedButton(
                     onClick = {
                         onLoadSampleData()
@@ -1096,7 +1113,7 @@ fun BusinessSettingsDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                "Tem certeza? Todos os lançamentos, estoque, vendas e despesas fixas serão apagados.",
+                                "ATENÇÃO: esta ação apagará permanentemente do aparelho todos os lançamentos financeiros, vendas, estoque, movimentações, vendedores e despesas fixas. Exporte um backup antes de continuar. Esta ação não pode ser desfeita.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )

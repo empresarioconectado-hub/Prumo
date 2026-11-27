@@ -70,6 +70,7 @@ import com.example.util.formatPercent
 @Composable
 fun SalesDreScreen(
     data: PrumoDashboardData,
+    hideValues: Boolean = false,
     onShiftMonth: (Int) -> Unit,
     onAddSale: () -> Unit,
     onEditSale: (SaleRecord) -> Unit,
@@ -80,6 +81,8 @@ fun SalesDreScreen(
     onAddFixedExpense: () -> Unit,
     onEditFixedExpense: (FixedExpense) -> Unit,
     onDeleteFixedExpense: (Long) -> Unit,
+    onExportDrePdf: () -> Unit,
+    onExportCashCsv: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var subTab by remember { mutableIntStateOf(0) }
@@ -116,6 +119,22 @@ fun SalesDreScreen(
                     },
                     onAction = if (subTab == 2) onAddFixedExpense else onAddSale
                 )
+            }
+
+            if (subTab == 0) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(onClick = onExportDrePdf, modifier = Modifier.weight(1f)) {
+                            Text("Exportar DRE PDF")
+                        }
+                        OutlinedButton(onClick = onExportCashCsv, modifier = Modifier.weight(1f)) {
+                            Text("Exportar Caixa CSV")
+                        }
+                    }
+                }
             }
 
             when (subTab) {
@@ -211,7 +230,7 @@ fun SalesDreScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Total no mês: ${formatBrlFromCents(data.dreMonth.fixedExpensesCents)}",
+                                    text = "Total no mês: ${privacyMoney(data.dreMonth.fixedExpensesCents, hideValues)}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -281,14 +300,14 @@ private fun DreSummaryCard(data: PrumoDashboardData) {
             DreStructureBar(dre = dre)
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-            DreLine("(=) Receita Bruta de Vendas", formatBrlFromCents(dre.grossRevenueCents), isBold = true)
-            DreLine("(-) Impostos sobre Vendas", "-${formatBrlFromCents(dre.salesTaxesCents)}", valueColor = PrumoDanger)
-            DreLine("(=) Receita Líquida", formatBrlFromCents(dre.netRevenueCents), isBold = true)
-            DreLine("(-) CMV / CSV", "-${formatBrlFromCents(dre.costOfGoodsCents)}", valueColor = PrumoDanger)
-            DreLine("(-) Comissões de Venda", "-${formatBrlFromCents(dre.commissionsCents)}", valueColor = PrumoDanger)
+            DreLine("(=) Receita Bruta de Vendas", privacyMoney(dre.grossRevenueCents, hideValues), isBold = true)
+            DreLine("(-) Impostos sobre Vendas", "-${privacyMoney(dre.salesTaxesCents, hideValues)}", valueColor = PrumoDanger)
+            DreLine("(=) Receita Líquida", privacyMoney(dre.netRevenueCents, hideValues), isBold = true)
+            DreLine("(-) CMV / CSV", "-${privacyMoney(dre.costOfGoodsCents, hideValues)}", valueColor = PrumoDanger)
+            DreLine("(-) Comissões de Venda", "-${privacyMoney(dre.commissionsCents, hideValues)}", valueColor = PrumoDanger)
             DreLine(
                 "(=) Margem de Contribuição (${formatPercent(dre.contributionMarginPercent)})",
-                formatBrlFromCents(dre.contributionMarginCents),
+                privacyMoney(dre.contributionMarginCents, hideValues),
                 isBold = true,
                 valueColor = if (dre.contributionMarginCents >= 0L) MaterialTheme.colorScheme.primary else PrumoDanger
             )
@@ -297,14 +316,14 @@ private fun DreSummaryCard(data: PrumoDashboardData) {
 
             DreLine(
                 "(-) Despesas Fixas Operacionais",
-                "-${formatBrlFromCents(dre.fixedExpensesCents)}",
+                "-${privacyMoney(dre.fixedExpensesCents, hideValues)}",
                 isBold = true,
                 valueColor = PrumoDanger
             )
             PrumoConstants.fixedExpenseCategories.forEach { cat ->
                 val catTotal = dre.fixedExpensesByCategory[cat] ?: 0L
                 if (catTotal > 0L) {
-                    DreLine("   • $cat", "-${formatBrlFromCents(catTotal)}", isSubtle = true)
+                    DreLine("   • $cat", "-${privacyMoney(catTotal, hideValues)}", isSubtle = true)
                 }
             }
 
@@ -312,7 +331,7 @@ private fun DreSummaryCard(data: PrumoDashboardData) {
 
             DreLine(
                 "(=) Lucro Operacional (EBITDA)",
-                formatBrlFromCents(dre.operatingProfitEbitdaCents),
+                privacyMoney(dre.operatingProfitEbitdaCents, hideValues),
                 isBold = true,
                 valueColor = if (dre.operatingProfitEbitdaCents >= 0L) MaterialTheme.colorScheme.primary else PrumoDanger
             )
@@ -338,7 +357,7 @@ private fun DreSummaryCard(data: PrumoDashboardData) {
                         )
                     }
                     Text(
-                        text = formatBrlFromCents(dre.netProfitCents),
+                        text = privacyMoney(dre.netProfitCents, hideValues),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = if (dre.netProfitCents >= 0L) MaterialTheme.colorScheme.primary else PrumoDanger
@@ -440,12 +459,12 @@ private fun SellerRankingCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Vendido: ${formatBrlFromCents(item.totalSalesCents)} (${formatPercent(pct)})",
+                    text = "Vendido: ${privacyMoney(item.totalSalesCents, hideValues)} (${formatPercent(pct)})",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Meta: ${formatBrlFromCents(item.goalCents)}",
+                    text = "Meta: ${privacyMoney(item.goalCents, hideValues)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -457,7 +476,7 @@ private fun SellerRankingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Comissão estimada: ${formatBrlFromCents(item.estimatedCommissionCents)}",
+                    text = "Comissão estimada: ${privacyMoney(item.estimatedCommissionCents, hideValues)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -503,14 +522,14 @@ private fun SaleRecordCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Margem contrib.: ${formatBrlFromCents(sale.contributionMarginCents)} · CMV: ${formatBrlFromCents(sale.costAmountCents)}",
+                    text = "Margem contrib.: ${privacyMoney(sale.contributionMarginCents, hideValues)} · CMV: ${privacyMoney(sale.costAmountCents, hideValues)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = formatBrlFromCents(sale.grossAmountCents),
+                    text = privacyMoney(sale.grossAmountCents, hideValues),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -566,7 +585,7 @@ private fun FixedExpenseCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = formatBrlFromCents(expense.amountCents),
+                    text = privacyMoney(expense.amountCents, hideValues),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = PrumoDanger
@@ -583,3 +602,7 @@ private fun FixedExpenseCard(
         }
     }
 }
+
+
+private fun privacyMoney(cents: Long, hidden: Boolean, decimals: Boolean = true): String =
+    if (hidden) "••••••" else formatBrlFromCents(cents, includeDecimals = decimals)

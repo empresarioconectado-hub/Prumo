@@ -5,4 +5,6 @@
     <string name="nav_cash">Caixa</string>
     <string name="nav_stock">Estoque</string>
     <string name="nav_sales">Vendas &amp; DRE</string>
+    <string name="privacy_values_hidden">••••••</string>
+    <string name="data_deletion_warning">Atenção: esta ação apaga permanentemente do aparelho todos os lançamentos financeiros, vendas, estoque, movimentações, vendedores e despesas fixas. Exporte um backup antes de continuar. Esta ação não pode ser desfeita.</string>
 </resources>

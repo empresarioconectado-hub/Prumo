@@ -72,6 +72,7 @@ import com.example.util.formatDayMonth
 @Composable
 fun CashFlowScreen(
     data: PrumoDashboardData,
+    hideValues: Boolean = false,
     onShiftMonth: (Int) -> Unit,
     onAddEntry: () -> Unit,
     onEditEntry: (CashEntry) -> Unit,
@@ -120,17 +121,17 @@ fun CashFlowScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CashMetricTile("Saldo Inicial", formatBrlFromCents(data.settings.initialBalanceCents), MaterialTheme.colorScheme.onSurface, Modifier.weight(1f))
-                    CashMetricTile("Total Entradas", formatBrlFromCents(data.monthPaidIncomeCents), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                    CashMetricTile("Total Saídas", formatBrlFromCents(data.monthPaidExpenseCents), PrumoDanger, Modifier.weight(1f))
+                    CashMetricTile("Saldo Inicial", privacyMoney(data.settings.initialBalanceCents, hideValues), MaterialTheme.colorScheme.onSurface, Modifier.weight(1f))
+                    CashMetricTile("Total Entradas", privacyMoney(data.monthPaidIncomeCents, hideValues), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                    CashMetricTile("Total Saídas", privacyMoney(data.monthPaidExpenseCents, hideValues), PrumoDanger, Modifier.weight(1f))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CashMetricTile("A Receber", formatBrlFromCents(data.monthPendingIncomeCents), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                    CashMetricTile("A Pagar", formatBrlFromCents(data.monthPendingExpenseCents), PrumoDanger, Modifier.weight(1f))
-                    CashMetricTile("Pró-labore", formatBrlFromCents(data.monthPartnerWithdrawalsCents), PrumoAlertYellowInk, Modifier.weight(1f))
+                    CashMetricTile("A Receber", privacyMoney(data.monthPendingIncomeCents, hideValues), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                    CashMetricTile("A Pagar", privacyMoney(data.monthPendingExpenseCents, hideValues), PrumoDanger, Modifier.weight(1f))
+                    CashMetricTile("Pró-labore", privacyMoney(data.monthPartnerWithdrawalsCents, hideValues), PrumoAlertYellowInk, Modifier.weight(1f))
                 }
             }
         }
@@ -156,7 +157,7 @@ fun CashFlowScreen(
                         Column {
                             Text("Projeção de Caixa (30 dias)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Text(
-                                text = "Mínimo de segurança: ${formatBrlFromCents(data.settings.minCashAlertCents)}",
+                                text = "Mínimo de segurança: ${privacyMoney(data.settings.minCashAlertCents, hideValues)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -364,7 +365,7 @@ private fun DailyProjectionRow(day: DailyCashPoint) {
             modifier = Modifier.weight(0.75f)
         )
         Text(
-            text = if (day.expectedInflowCents > 0L) "+${formatBrlFromCents(day.expectedInflowCents, false)}" else "—",
+            text = if (day.expectedInflowCents > 0L) "+${privacyMoney(day.expectedInflowCents, hideValues, false)}" else "—",
             style = MaterialTheme.typography.bodySmall,
             color = if (day.expectedInflowCents > 0L) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
@@ -372,7 +373,7 @@ private fun DailyProjectionRow(day: DailyCashPoint) {
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = if (day.expectedOutflowCents > 0L) "-${formatBrlFromCents(day.expectedOutflowCents, false)}" else "—",
+            text = if (day.expectedOutflowCents > 0L) "-${privacyMoney(day.expectedOutflowCents, hideValues, false)}" else "—",
             style = MaterialTheme.typography.bodySmall,
             color = if (day.expectedOutflowCents > 0L) PrumoDanger else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
@@ -380,7 +381,7 @@ private fun DailyProjectionRow(day: DailyCashPoint) {
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = formatBrlFromCents(day.projectedBalanceCents, false),
+            text = privacyMoney(day.projectedBalanceCents, hideValues, false),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
             color = if (isNegative) PrumoDanger else MaterialTheme.colorScheme.onSurface,
@@ -440,7 +441,7 @@ private fun CashEntryCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "${if (isIncome) "+" else "-"}${formatBrlFromCents(entry.amountCents)}",
+                        text = "${if (isIncome) "+" else "-"}${privacyMoney(entry.amountCents, hideValues)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (isIncome) MaterialTheme.colorScheme.primary else PrumoDanger
@@ -502,3 +503,7 @@ private fun CashEntryCard(
         }
     }
 }
+
+
+private fun privacyMoney(cents: Long, hidden: Boolean, decimals: Boolean = true): String =
+    if (hidden) "••••••" else formatBrlFromCents(cents, includeDecimals = decimals)
