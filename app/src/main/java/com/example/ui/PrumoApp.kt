@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -125,6 +127,7 @@ fun PrumoApp() {
     )
 
     val dashboardData by viewModel.dashboardState.collectAsStateWithLifecycle()
+    var hideValues by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val backupRepository = remember(context) {
@@ -223,6 +226,15 @@ fun PrumoApp() {
                     },
                     actions = {
                         IconButton(
+                            onClick = { hideValues = !hideValues },
+                            modifier = Modifier.minimumInteractiveComponentSize()
+                        ) {
+                            Icon(
+                                imageVector = if (hideValues) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (hideValues) "Mostrar valores" else "Ocultar valores"
+                            )
+                        }
+                        IconButton(
                             onClick = { activeDialog = ActiveDialog.BusinessSettingsForm },
                             modifier = Modifier
                                 .minimumInteractiveComponentSize()
@@ -296,6 +308,7 @@ fun PrumoApp() {
                         composable(ROUTE_OVERVIEW) {
                             OverviewScreen(
                                 data = dashboardData,
+                                hideValues = hideValues,
                                 onQuickIncome = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.INCOME) },
                                 onQuickExpense = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.EXPENSE) },
                                 onQuickSale = { activeDialog = ActiveDialog.SaleForm(null) },
@@ -309,6 +322,7 @@ fun PrumoApp() {
                         composable(ROUTE_CASH) {
                             CashFlowScreen(
                                 data = dashboardData,
+                                hideValues = hideValues,
                                 onShiftMonth = viewModel::shiftMonth,
                                 onAddEntry = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.INCOME) },
                                 onEditEntry = { activeDialog = ActiveDialog.CashEntryForm(it, it.entryType) },
