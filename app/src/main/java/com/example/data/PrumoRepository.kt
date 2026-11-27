@@ -53,26 +53,25 @@ class PrumoRepository(
 
     suspend fun saveStockItem(item: StockItem) {
         if (item.id == 0L) {
-            val id = dao.insertStockItem(item)
-            if (item.quantity > 0L) dao.insertStockMovement(StockMovement(
-                stockItemId = id, sku = item.sku, productName = item.name,
+            val openingMovement = if (item.quantity > 0L) StockMovement(
+                stockItemId = 0L, sku = item.sku, productName = item.name,
                 movementType = StockMovementType.PURCHASE.name, quantity = item.quantity,
                 unitCostCents = item.unitCostCents, referenceNote = "Saldo inicial do cadastro",
                 dateMillis = System.currentTimeMillis()
-            ))
+            ) else null
+            dao.insertStockItemWithOpeningMovement(item, openingMovement)
         } else {
             val current = dao.stockItemById(item.id)
-            dao.updateStockItem(item)
-            if (current != null && current.quantity != item.quantity) dao.insertStockMovement(StockMovement(
+            val movement = if (current != null && current.quantity != item.quantity) StockMovement(
                 stockItemId = item.id, sku = item.sku, productName = item.name,
                 movementType = StockMovementType.ADJUSTMENT.name,
                 quantity = kotlin.math.abs(item.quantity - current.quantity),
                 unitCostCents = item.unitCostCents, referenceNote = "Ajuste manual de saldo",
                 dateMillis = System.currentTimeMillis()
-            ))
+            ) else null
+            dao.updateStockItemWithMovement(item, movement)
         }
     }
-
     suspend fun applyStockMovement(item: StockItem, movementType: StockMovementType, units: Long): Boolean {
         if (units <= 0L) return false
         val current = dao.stockItemById(item.id) ?: return false
