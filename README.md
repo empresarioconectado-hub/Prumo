@@ -173,4 +173,4 @@ Contribuições são bem-vindas. Antes de abrir uma alteração, leia o [guia de
 
 ## Licença
 
-Nenhuma licença de código aberto foi definida neste repositório. Até que uma licença seja incluída, não presuma autorização para redistribuir, modificar ou utilizar o código fora das permissões concedidas pela legislação aplicável. Consulte [LICENSE](LICENSE) quando o projeto definir seus termos de distribuição.
+Este repositório ainda não contém um arquivo de licença. Portanto, o código não deve ser tratado como software de código aberto com permissões de uso, modificação ou redistribuição previamente concedidas. A licença deverá ser definida pelo responsável pelo projeto antes de anunciar oficialmente os termos de distribuição.
