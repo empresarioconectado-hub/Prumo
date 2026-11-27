@@ -211,6 +211,27 @@ fun StockScreen(
                 )
             }
         }
+
+        item {
+            Text("Histórico de movimentações", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+        if (data.stockMovements.isEmpty()) {
+            item { Text("Nenhuma movimentação registrada.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        } else {
+            items(data.stockMovements.take(30), key = { "movement-\${it.id}" }) { movement ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("\${movement.productName} · \${movement.sku}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                        Text("\${movement.movementType} · \${movement.quantity} un · \${movement.referenceNote}", style = MaterialTheme.typography.bodySmall)
+                        Text(formatDateShort(movement.dateMillis), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
     }
 }
 
