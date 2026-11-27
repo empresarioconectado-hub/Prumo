@@ -148,7 +148,8 @@ class PrumoRepository(
 
     suspend fun clearAllData() {
         dao.clearCashEntries()
-        dao.clearStockItems()\n        dao.clearStockMovements()
+        dao.clearStockItems()
+        dao.clearStockMovements()
         dao.clearSales()
         dao.clearSellers()
         dao.clearFixedExpenses()
