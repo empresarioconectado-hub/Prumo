@@ -104,21 +104,6 @@ interface PrumoDao {
         deleteSaleById(id)
     }
 
-    private suspend fun reverseSaleStock(sale: SaleRecord) {
-        val stockId = sale.stockItemId ?: return
-        val item = stockItemById(stockId) ?: return
-        updateStockItem(item.copy(
-            quantity = item.quantity + sale.quantity,
-            soldUnitsCount = (item.soldUnitsCount - sale.quantity).coerceAtLeast(0L)
-        ))
-        insertStockMovement(StockMovement(
-            stockItemId = item.id, sku = item.sku, productName = item.name,
-            movementType = StockMovementType.ADJUSTMENT.name, quantity = sale.quantity,
-            unitCostCents = item.unitCostCents, referenceNote = "Estorno da venda #${sale.id}",
-            dateMillis = System.currentTimeMillis()
-        ))
-    }
-
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSellers(sellers: List<SellerProfile>)
     @Query("SELECT * FROM seller_profiles ORDER BY name ASC") fun observeSellers(): Flow<List<SellerProfile>>
     @Query("SELECT * FROM seller_profiles") suspend fun allSellers(): List<SellerProfile>
@@ -149,4 +134,19 @@ interface PrumoDao {
         if (movements.isNotEmpty()) insertStockMovements(movements)
     }
 
+}
+
+private suspend fun PrumoDao.reverseSaleStock(sale: SaleRecord) {
+    val stockId = sale.stockItemId ?: return
+    val item = stockItemById(stockId) ?: return
+    updateStockItem(item.copy(
+        quantity = item.quantity + sale.quantity,
+        soldUnitsCount = (item.soldUnitsCount - sale.quantity).coerceAtLeast(0L)
+    ))
+    insertStockMovement(StockMovement(
+        stockItemId = item.id, sku = item.sku, productName = item.name,
+        movementType = StockMovementType.ADJUSTMENT.name, quantity = sale.quantity,
+        unitCostCents = item.unitCostCents, referenceNote = "Estorno da venda #${sale.id}",
+        dateMillis = System.currentTimeMillis()
+    ))
 }
