@@ -129,6 +129,16 @@ interface PrumoDao {
     @Query("DELETE FROM fixed_expenses") suspend fun clearFixedExpenses()
 
     @Transaction
+    suspend fun clearAllDataAtomic() {
+        clearCashEntries()
+        clearStockItems()
+        clearSales()
+        clearSellers()
+        clearFixedExpenses()
+        clearStockMovements()
+    }
+
+    @Transaction
     suspend fun replaceAllData(
         cash: List<CashEntry>, stock: List<StockItem>, sales: List<SaleRecord>,
         sellers: List<SellerProfile>, expenses: List<FixedExpense>, movements: List<StockMovement>
