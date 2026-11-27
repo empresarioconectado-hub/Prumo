@@ -108,8 +108,10 @@ class PrumoRepository(
         return true
     }
 
-    suspend fun deleteStockItem(id: Long) {
+    suspend fun deleteStockItem(id: Long): Boolean {
+        if (dao.countSalesForStockItem(id) > 0) return false
         dao.deleteStockItemById(id)
+        return true
     }
 
     suspend fun saveSale(sale: SaleRecord) {
