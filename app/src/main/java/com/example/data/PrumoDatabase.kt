@@ -16,7 +16,7 @@ import com.example.model.StockMovement
 @Database(
     entities = [CashEntry::class, StockItem::class, SaleRecord::class, SellerProfile::class, FixedExpense::class, StockMovement::class],
     version = 2,
-    exportSchema = true
+    exportSchema = false
 )
 abstract class PrumoDatabase : RoomDatabase() {
     abstract fun prumoDao(): PrumoDao
