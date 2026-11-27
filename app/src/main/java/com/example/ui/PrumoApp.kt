@@ -59,7 +59,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.data.PrumoBackupManager
 import com.example.data.PrumoDatabase
 import com.example.data.PrumoRepository
 import com.example.data.SettingsDataStore
@@ -128,15 +127,15 @@ fun PrumoApp() {
     val dashboardData by viewModel.dashboardState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val backupManager = remember(context) {
-        PrumoBackupManager(PrumoDatabase.getInstance(context).prumoDao(), SettingsDataStore(context))
+    val backupRepository = remember(context) {
+        PrumoRepository(PrumoDatabase.getInstance(context).prumoDao(), SettingsDataStore(context))
     }
     val exportBackupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) coroutineScope.launch {
             try {
-                val json = backupManager.exportJson()
+                val json = backupRepository.exportBackupJson()
                 val output = context.contentResolver.openOutputStream(uri)
                     ?: error("Não foi possível abrir o arquivo de destino.")
                 output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
@@ -153,7 +152,7 @@ fun PrumoApp() {
             try {
                 val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                     ?: error("Não foi possível ler o arquivo selecionado.")
-                backupManager.restoreJson(json)
+                backupRepository.restoreBackupJson(json)
                 snackbarHostState.showSnackbar("Backup restaurado. Os dados locais foram substituídos.")
             } catch (error: Exception) {
                 snackbarHostState.showSnackbar("Falha ao restaurar backup: ${error.message}")
