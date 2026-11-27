@@ -1021,6 +1021,12 @@ fun BusinessSettingsDialog(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text("Gerenciamento de dados offline", style = MaterialTheme.typography.labelMedium)
+                OutlinedButton(onClick = onExportBackup, modifier = Modifier.fillMaxWidth()) {
+                    Text("Exportar backup JSON")
+                }
+                OutlinedButton(onClick = onImportBackup, modifier = Modifier.fillMaxWidth()) {
+                    Text("Restaurar backup JSON")
+                }
 
                 OutlinedButton(
                     onClick = {
