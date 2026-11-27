@@ -35,18 +35,19 @@ class PrumoRepository(
     }
 
     suspend fun saveCashEntry(entry: CashEntry) {
-        if (entry.id == 0L) {
-            dao.insertCashEntry(entry)
-        } else {
-            dao.updateCashEntry(entry)
-        }
+        require(entry.saleId == null) { "Lançamentos gerados por vendas devem ser alterados pela própria venda." }
+        if (entry.id == 0L) dao.insertCashEntry(entry) else dao.updateCashEntry(entry)
     }
 
     suspend fun markCashEntryStatus(id: Long, status: CashEntryStatus) {
+        val entry = dao.cashEntryById(id) ?: return
         dao.updateCashEntryStatus(id, status.name)
+        entry.saleId?.let { dao.updateSalePaymentStatus(it, status.name) }
     }
 
     suspend fun deleteCashEntry(id: Long) {
+        val entry = dao.cashEntryById(id)
+        require(entry?.saleId == null) { "Exclua ou edite a venda para remover seu lançamento vinculado." }
         dao.deleteCashEntryById(id)
     }
 
