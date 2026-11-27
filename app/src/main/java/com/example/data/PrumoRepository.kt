@@ -47,9 +47,7 @@ class PrumoRepository(
     }
 
     suspend fun markCashEntryStatus(id: Long, status: CashEntryStatus) {
-        val entry = dao.cashEntryById(id) ?: return
-        dao.updateCashEntryStatus(id, status.name)
-        entry.saleId?.let { dao.updateSalePaymentStatus(it, status.name) }
+        dao.updateCashEntryStatusAtomic(id, status.name)
     }
 
     suspend fun deleteCashEntry(id: Long): Boolean {
