@@ -341,8 +341,11 @@ class PrumoViewModel(
 
     fun saveCashEntry(entry: CashEntry) {
         viewModelScope.launch {
-            repository.saveCashEntry(entry)
-            _feedbackEvents.tryEmit(if (entry.id == 0L) "Lançamento salvo no caixa." else "Lançamento atualizado.")
+            val saved = repository.saveCashEntry(entry)
+            _feedbackEvents.tryEmit(
+                if (!saved) "Este lançamento pertence a uma venda. Edite a venda para manter os dados consistentes."
+                else if (entry.id == 0L) "Lançamento salvo no caixa." else "Lançamento atualizado."
+            )
         }
     }
 
@@ -356,8 +359,11 @@ class PrumoViewModel(
 
     fun deleteCashEntry(id: Long) {
         viewModelScope.launch {
-            repository.deleteCashEntry(id)
-            _feedbackEvents.tryEmit("Lançamento removido.")
+            val deleted = repository.deleteCashEntry(id)
+            _feedbackEvents.tryEmit(
+                if (deleted) "Lançamento removido."
+                else "Este lançamento pertence a uma venda. Exclua a venda para remover o recebimento vinculado."
+            )
         }
     }
 
