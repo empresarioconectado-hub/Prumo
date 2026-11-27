@@ -143,7 +143,7 @@ fun PrumoApp() {
             }.onSuccess {
                 snackbarHostState.showSnackbar("Backup exportado com sucesso.")
             }.onFailure {
-                snackbarHostState.showSnackbar("Falha ao exportar backup: \${it.message}")
+                snackbarHostState.showSnackbar("Falha ao exportar backup: ${it.message}")
             }
         }
     }
@@ -158,7 +158,7 @@ fun PrumoApp() {
             }.onSuccess {
                 snackbarHostState.showSnackbar("Backup restaurado. Os dados locais foram substituídos.")
             }.onFailure {
-                snackbarHostState.showSnackbar("Falha ao restaurar backup: \${it.message}")
+                snackbarHostState.showSnackbar("Falha ao restaurar backup: ${it.message}")
             }
         }
     }
