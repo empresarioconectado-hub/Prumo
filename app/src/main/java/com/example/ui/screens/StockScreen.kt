@@ -51,6 +51,7 @@ import com.example.ui.theme.PrumoGreen
 import com.example.ui.theme.PrumoGreenSoft
 import com.example.ui.viewmodel.PrumoDashboardData
 import com.example.util.formatBrlFromCents
+import com.example.util.formatDateShort
 import java.util.Locale
 
 private val stockPtBr = Locale.Builder().setLanguage("pt").setRegion("BR").build()
