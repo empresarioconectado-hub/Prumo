@@ -32,6 +32,19 @@ interface PrumoDao {
     @Query("SELECT * FROM stock_movements ORDER BY dateMillis DESC, id DESC") fun observeStockMovements(): Flow<List<StockMovement>>\n    @Query("SELECT * FROM stock_movements") suspend fun allStockMovements(): List<StockMovement>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockMovement(movement: StockMovement): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockMovements(movements: List<StockMovement>)
+
+    @Transaction
+    suspend fun insertStockItemWithOpeningMovement(item: StockItem, movement: StockMovement?): Long {
+        val id = insertStockItem(item)
+        if (movement != null) insertStockMovement(movement.copy(stockItemId = id))
+        return id
+    }
+
+    @Transaction
+    suspend fun updateStockItemWithMovement(item: StockItem, movement: StockMovement?) {
+        updateStockItem(item)
+        if (movement != null) insertStockMovement(movement)
+    }
     @Query("DELETE FROM stock_movements") suspend fun clearStockMovements()
 
     @Query("SELECT * FROM sale_records ORDER BY saleDateMillis DESC, id DESC") fun observeSales(): Flow<List<SaleRecord>>\n    @Query("SELECT * FROM sale_records") suspend fun allSales(): List<SaleRecord>
