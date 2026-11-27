@@ -51,18 +51,18 @@ interface PrumoDao {
         if (saved.stockItemId != null) {
             val item = stockItemById(saved.stockItemId) ?: error("Produto vinculado não encontrado.")
             require(saved.quantity > 0L) { "A quantidade da venda deve ser maior que zero." }
-            require(item.quantity >= saved.quantity) { "Estoque insuficiente para \${item.name}. Disponível: \${item.quantity}." }
+            require(item.quantity >= saved.quantity) { "Estoque insuficiente para ${item.name}. Disponível: ${item.quantity}." }
             updateStockItem(item.copy(quantity = item.quantity - saved.quantity, soldUnitsCount = item.soldUnitsCount + saved.quantity))
             insertStockMovement(StockMovement(
                 stockItemId = item.id, sku = item.sku, productName = item.name,
                 movementType = StockMovementType.SALE.name, quantity = saved.quantity,
-                unitCostCents = item.unitCostCents, referenceNote = "Venda #\${id}",
+                unitCostCents = item.unitCostCents, referenceNote = "Venda #${id}",
                 dateMillis = saved.saleDateMillis
             ))
         }
         deleteCashEntriesForSale(id)
         insertCashEntry(CashEntry(
-            description = "Venda #\${id} - \${saved.description}",
+            description = "Venda #${id} - ${saved.description}",
             amountCents = saved.grossAmountCents, type = CashEntryType.INCOME.name,
             category = "Vendas à vista", account = saved.account,
             paymentMethod = saved.paymentMethod, status = saved.paymentStatus,
@@ -88,7 +88,7 @@ interface PrumoDao {
         insertStockMovement(StockMovement(
             stockItemId = item.id, sku = item.sku, productName = item.name,
             movementType = StockMovementType.ADJUSTMENT.name, quantity = sale.quantity,
-            unitCostCents = item.unitCostCents, referenceNote = "Estorno da venda #\${sale.id}",
+            unitCostCents = item.unitCostCents, referenceNote = "Estorno da venda #${sale.id}",
             dateMillis = System.currentTimeMillis()
         ))
     }
