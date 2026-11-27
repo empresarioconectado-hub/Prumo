@@ -139,7 +139,7 @@ fun SalesDreScreen(
 
             when (subTab) {
                 0 -> {
-                    item { DreSummaryCard(data = data) }
+                    item { DreSummaryCard(data = data, hideValues = hideValues) }
                 }
 
                 1 -> {
@@ -180,6 +180,7 @@ fun SalesDreScreen(
                             val sellerProfile = data.sellers.firstOrNull { it.id == rank.sellerId }
                             SellerRankingCard(
                                 item = rank,
+                                hideValues = hideValues,
                                 onEdit = sellerProfile?.let { prof -> { onEditSeller(prof) } },
                                 onDelete = sellerProfile?.let { prof -> { onDeleteSeller(prof.id) } }
                             )
@@ -209,6 +210,7 @@ fun SalesDreScreen(
                         items(data.monthSales, key = { it.id }) { sale ->
                             SaleRecordCard(
                                 sale = sale,
+                                hideValues = hideValues,
                                 onEdit = { onEditSale(sale) },
                                 onDelete = { onDeleteSale(sale.id) }
                             )
@@ -260,6 +262,7 @@ fun SalesDreScreen(
                         items(data.monthFixedExpenses, key = { it.id }) { exp ->
                             FixedExpenseCard(
                                 expense = exp,
+                                hideValues = hideValues,
                                 onEdit = { onEditFixedExpense(exp) },
                                 onDelete = { onDeleteFixedExpense(exp.id) }
                             )
@@ -272,7 +275,7 @@ fun SalesDreScreen(
 }
 
 @Composable
-private fun DreSummaryCard(data: PrumoDashboardData) {
+private fun DreSummaryCard(data: PrumoDashboardData, hideValues: Boolean) {
     val dre = data.dreMonth
     Surface(
         shape = RoundedCornerShape(18.dp),
@@ -400,6 +403,7 @@ private fun DreLine(
 @Composable
 private fun SellerRankingCard(
     item: SellerRankingItem,
+    hideValues: Boolean,
     onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?
 ) {
@@ -499,6 +503,7 @@ private fun SellerRankingCard(
 @Composable
 private fun SaleRecordCard(
     sale: SaleRecord,
+    hideValues: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -549,6 +554,7 @@ private fun SaleRecordCard(
 @Composable
 private fun FixedExpenseCard(
     expense: FixedExpense,
+    hideValues: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
