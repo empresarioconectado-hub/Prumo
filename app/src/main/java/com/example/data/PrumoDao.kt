@@ -60,7 +60,8 @@ interface PrumoDao {
 
     @Query("SELECT * FROM sale_records ORDER BY saleDateMillis DESC, id DESC") fun observeSales(): Flow<List<SaleRecord>>
     @Query("SELECT * FROM sale_records") suspend fun allSales(): List<SaleRecord>
-    @Query("SELECT * FROM sale_records WHERE id = :id LIMIT 1") suspend fun saleById(id: Long): SaleRecord?\n    @Query("SELECT COUNT(*) FROM sale_records WHERE stockItemId = :stockItemId") suspend fun countSalesForStockItem(stockItemId: Long): Int
+    @Query("SELECT * FROM sale_records WHERE id = :id LIMIT 1") suspend fun saleById(id: Long): SaleRecord?
+    @Query("SELECT COUNT(*) FROM sale_records WHERE stockItemId = :stockItemId") suspend fun countSalesForStockItem(stockItemId: Long): Int
     @Query("UPDATE sale_records SET paymentStatus = :status WHERE id = :saleId") suspend fun updateSalePaymentStatus(saleId: Long, status: String)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSale(sale: SaleRecord): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSales(sales: List<SaleRecord>)
