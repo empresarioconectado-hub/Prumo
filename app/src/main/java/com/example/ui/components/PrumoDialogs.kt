@@ -964,7 +964,9 @@ fun BusinessSettingsDialog(
     onDismiss: () -> Unit,
     onSave: (businessName: String, initialBalanceCents: Long, minCashAlertCents: Long, taxRatePercent: Double) -> Unit,
     onLoadSampleData: () -> Unit,
-    onClearAllData: () -> Unit
+    onClearAllData: () -> Unit,
+    onExportBackup: () -> Unit,
+    onImportBackup: () -> Unit
 ) {
     var name by remember { mutableStateOf(current.businessName) }
     var initialText by remember { mutableStateOf(centsToInputText(current.initialBalanceCents)) }
