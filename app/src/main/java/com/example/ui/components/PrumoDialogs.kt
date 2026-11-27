@@ -337,8 +337,9 @@ fun StockItemDialog(
 
     val previewMin = minText.toLongOrNull() ?: 0L
     val previewLead = leadText.toLongOrNull() ?: 0L
-    val previewAvg = avgDailyText.replace(",", ".").toDoubleOrNull() ?: 0.0
-    val previewReorder = ceil(previewAvg * previewLead).toLong() + previewMin
+    val previewAvg = avgDailyText.replace(",", ".").toDoubleOrNull()
+        ?.takeIf { it.isFinite() && it >= 0.0 } ?: 0.0
+    val previewReorder = (ceil(previewAvg * previewLead).toLong() + previewMin).coerceAtLeast(0L)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -476,14 +477,17 @@ fun StockItemDialog(
                     val qty = qtyText.toLongOrNull()
                     val min = minText.toLongOrNull() ?: 0L
                     val lead = leadText.toLongOrNull() ?: 0L
-                    val avg = avgDailyText.replace(",", ".").toDoubleOrNull() ?: 0.0
-                    val cost = parseBrlInputToCents(costText) ?: 0L
-                    val price = parseBrlInputToCents(priceText) ?: 0L
+                    val avg = avgDailyText.replace(",", ".").toDoubleOrNull()
+                    val cost = parseBrlInputToCents(costText)
+                    val price = parseBrlInputToCents(priceText)
 
                     when {
                         sku.isBlank() -> errorMsg = "Informe o SKU."
                         name.isBlank() -> errorMsg = "Informe o nome do produto."
-                        qty == null -> errorMsg = "Informe o estoque inicial/atual."
+                        qty == null || qty < 0L -> errorMsg = "Informe uma quantidade válida (zero ou maior)."
+                        avg == null || !avg.isFinite() || avg < 0.0 -> errorMsg = "A venda média deve ser um número válido e não negativo."
+                        cost == null -> errorMsg = "Informe um custo unitário válido."
+                        price == null -> errorMsg = "Informe um preço de venda válido."
                         else -> onSave(
                             StockItem(
                                 id = existing?.id ?: 0L,
@@ -795,16 +799,20 @@ fun SaleRecordDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val q = (qtyText.toLongOrNull() ?: 1L).coerceAtLeast(1L)
+                    val q = qtyText.toLongOrNull()
                     val gross = parseBrlInputToCents(grossText)
-                    val cost = parseBrlInputToCents(costText) ?: 0L
-                    val tax = taxText.replace(",", ".").toDoubleOrNull()?.coerceIn(0.0, 100.0) ?: 0.0
-                    val comm = commText.replace(",", ".").toDoubleOrNull()?.coerceIn(0.0, 100.0) ?: 0.0
+                    val cost = parseBrlInputToCents(costText)
+                    val tax = taxText.replace(",", ".").toDoubleOrNull()
+                    val comm = commText.replace(",", ".").toDoubleOrNull()
 
                     when {
                         description.isBlank() -> errorMsg = "Informe o produto ou serviço."
                         sellerName.isBlank() -> errorMsg = "Informe o vendedor."
+                        q == null || q <= 0L -> errorMsg = "Informe uma quantidade maior que zero."
                         gross == null || gross <= 0L -> errorMsg = "Informe o valor bruto maior que zero."
+                        cost == null -> errorMsg = "Informe um CMV/CSV válido e não negativo."
+                        tax == null || !tax.isFinite() || tax !in 0.0..100.0 -> errorMsg = "Informe um imposto entre 0% e 100%."
+                        comm == null || !comm.isFinite() || comm !in 0.0..100.0 -> errorMsg = "Informe uma comissão entre 0% e 100%."
                         else -> onSave(
                             SaleRecord(
                                 id = existing?.id ?: 0L,
@@ -879,10 +887,11 @@ fun SellerDialog(
         confirmButton = {
             Button(onClick = {
                 val goal = parseBrlInputToCents(goalText)
-                val comm = commText.replace(",", ".").toDoubleOrNull()?.coerceIn(0.0, 100.0) ?: 0.0
+                val comm = commText.replace(",", ".").toDoubleOrNull()
                 when {
                     name.isBlank() -> errorMsg = "Informe o nome do vendedor."
                     goal == null || goal <= 0L -> errorMsg = "Informe uma meta maior que zero."
+                    comm == null || !comm.isFinite() || comm !in 0.0..100.0 -> errorMsg = "Informe uma comissão entre 0% e 100%."
                     else -> onSave(
                         SellerProfile(
                             id = existing?.id ?: 0L,
