@@ -399,8 +399,11 @@ class PrumoViewModel(
 
     fun deleteStockItem(id: Long) {
         viewModelScope.launch {
-            repository.deleteStockItem(id)
-            _feedbackEvents.tryEmit("Produto removido.")
+            val deleted = repository.deleteStockItem(id)
+            _feedbackEvents.tryEmit(
+                if (deleted) "Produto removido."
+                else "Não é possível excluir este produto: existem vendas vinculadas ao seu histórico."
+            )
         }
     }
 
