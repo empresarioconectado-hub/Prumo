@@ -1,6 +1,8 @@
 package com.example.ui
 
 import android.app.Application
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -37,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +59,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.data.PrumoBackupManager
 import com.example.data.PrumoDatabase
 import com.example.data.PrumoRepository
 import com.example.data.SettingsDataStore
@@ -78,6 +82,7 @@ import com.example.ui.screens.OverviewScreen
 import com.example.ui.screens.SalesDreScreen
 import com.example.ui.screens.StockScreen
 import com.example.ui.viewmodel.PrumoViewModel
+import kotlinx.coroutines.launch
 
 private const val ROUTE_OVERVIEW = "overview"
 private const val ROUTE_CASH = "cash_flow"
@@ -122,6 +127,41 @@ fun PrumoApp() {
 
     val dashboardData by viewModel.dashboardState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val backupManager = remember(context) {
+        PrumoBackupManager(PrumoDatabase.getInstance(context).prumoDao(), SettingsDataStore(context))
+    }
+    val exportBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) coroutineScope.launch {
+            runCatching {
+                val json = backupManager.exportJson()
+                val output = context.contentResolver.openOutputStream(uri)
+                    ?: error("Não foi possível abrir o arquivo de destino.")
+                output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+            }.onSuccess {
+                snackbarHostState.showSnackbar("Backup exportado com sucesso.")
+            }.onFailure {
+                snackbarHostState.showSnackbar("Falha ao exportar backup: \${it.message}")
+            }
+        }
+    }
+    val importBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) coroutineScope.launch {
+            runCatching {
+                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                    ?: error("Não foi possível ler o arquivo selecionado.")
+                backupManager.restoreJson(json)
+            }.onSuccess {
+                snackbarHostState.showSnackbar("Backup restaurado. Os dados locais foram substituídos.")
+            }.onFailure {
+                snackbarHostState.showSnackbar("Falha ao restaurar backup: \${it.message}")
+            }
+        }
+    }
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRouteName = backStackEntry?.destination?.route
@@ -395,7 +435,9 @@ fun PrumoApp() {
                     activeDialog = null
                 },
                 onLoadSampleData = { viewModel.loadSampleData() },
-                onClearAllData = { viewModel.clearAllData() }
+                onClearAllData = { viewModel.clearAllData() },
+                onExportBackup = { exportBackupLauncher.launch("prumo-backup-${System.currentTimeMillis()}.json") },
+                onImportBackup = { importBackupLauncher.launch(arrayOf("application/json", "text/json")) }
             )
         }
     }
