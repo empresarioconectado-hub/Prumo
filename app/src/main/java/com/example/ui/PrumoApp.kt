@@ -135,15 +135,14 @@ fun PrumoApp() {
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) coroutineScope.launch {
-            runCatching {
+            try {
                 val json = backupManager.exportJson()
                 val output = context.contentResolver.openOutputStream(uri)
                     ?: error("Não foi possível abrir o arquivo de destino.")
                 output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
-            }.onSuccess {
                 snackbarHostState.showSnackbar("Backup exportado com sucesso.")
-            }.onFailure {
-                snackbarHostState.showSnackbar("Falha ao exportar backup: ${it.message}")
+            } catch (error: Exception) {
+                snackbarHostState.showSnackbar("Falha ao exportar backup: ${error.message}")
             }
         }
     }
@@ -151,14 +150,13 @@ fun PrumoApp() {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) coroutineScope.launch {
-            runCatching {
+            try {
                 val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                     ?: error("Não foi possível ler o arquivo selecionado.")
                 backupManager.restoreJson(json)
-            }.onSuccess {
                 snackbarHostState.showSnackbar("Backup restaurado. Os dados locais foram substituídos.")
-            }.onFailure {
-                snackbarHostState.showSnackbar("Falha ao restaurar backup: ${it.message}")
+            } catch (error: Exception) {
+                snackbarHostState.showSnackbar("Falha ao restaurar backup: ${error.message}")
             }
         }
     }
