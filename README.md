@@ -35,7 +35,7 @@ A versão atual utiliza armazenamento local no dispositivo. O aplicativo não of
 | Relatórios | Exportação de DRE gerencial em PDF e lançamentos do caixa em CSV. |
 | Backup | Exportação e restauração manual de JSON versionado, protegido por senha com AES-256-GCM. |
 
-A lista descreve recursos presentes no código. Itens como integração bancária, sincronização em nuvem, cobrança automática, emissão fiscal, leitura de código de barras, anexos de comprovantes e autenticação biométrica não devem ser considerados disponíveis nesta versão.
+A lista descreve recursos presentes no código. Itens como integração bancária, sincronização em nuvem, cobrança automática, emissão fiscal, leitura de código de barras e anexos de comprovantes não fazem parte desta versão. O bloqueio opcional por biometria ou credencial do Android está disponível, mas depende de configuração segura no próprio dispositivo.
 
 ## Tecnologias
 
@@ -136,7 +136,7 @@ O backup valida formato, versão, tamanho, campos, faixas numéricas, identifica
 
 O manifesto desativa o backup automático do Android e não declara permissão de notificações que não seja utilizada pela versão atual. O modo de ocultação de valores é apenas visual; não equivale a criptografia. O bloqueio opcional usa a biometria ou credencial do dispositivo e protege a visualização do app em capturas e na tela de recentes enquanto ativado.
 
-Os novos backups são protegidos por senha com PBKDF2 e AES-256-GCM. A senha não é armazenada pelo aplicativo; mantenha-a em local seguro. Backups antigos em JSON sem criptografia continuam aceitos para migração. O bloqueio opcional utiliza biometria ou credencial do dispositivo e protege a visualização do app em capturas e na tela de recentes enquanto ativado.
+Os novos backups são protegidos por senha com PBKDF2 e AES-256-GCM. A senha não é armazenada pelo aplicativo; mantenha-a em local seguro. Backups antigos em JSON sem criptografia continuam aceitos para migração. A criptografia protege o arquivo exportado, não o banco local do aplicativo.
 
 Consulte [Segurança](docs/seguranca.md) e [Política de Privacidade](docs/politica-de-privacidade.md).
 
