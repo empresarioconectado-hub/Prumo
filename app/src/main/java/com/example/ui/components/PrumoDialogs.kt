@@ -1087,7 +1087,7 @@ fun BusinessSettingsDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Bloquear acesso ao Prumo", style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "Usa biometria ou PIN, padrão ou senha de bloqueio do Android.",
+                            "Usa biometria compatível ou PIN, padrão ou senha de bloqueio do Android.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
