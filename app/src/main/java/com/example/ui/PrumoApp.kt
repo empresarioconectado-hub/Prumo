@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -622,6 +624,18 @@ fun PrumoApp() {
                     importBackupLauncher.launch(arrayOf("application/json", "text/json"))
                 },
                 appLockEnabled = appLockEnabled,
+                onOpenPrivacyPolicy = {
+                    activeDialog = null
+                    activity.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/politica-de-privacidade.md"))
+                    )
+                },
+                onOpenTerms = {
+                    activeDialog = null
+                    activity.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/termos-de-uso.md"))
+                    )
+                },
                 onToggleAppLock = { enabled ->
                     val keyguard = activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
                     if (enabled && !keyguard.isDeviceSecure) {

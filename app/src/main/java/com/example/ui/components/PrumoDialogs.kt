@@ -982,7 +982,9 @@ fun BusinessSettingsDialog(
     onExportBackup: () -> Unit,
     onImportBackup: () -> Unit,
     appLockEnabled: Boolean,
-    onToggleAppLock: (Boolean) -> Boolean
+    onToggleAppLock: (Boolean) -> Boolean,
+    onOpenPrivacyPolicy: () -> Unit,
+    onOpenTerms: () -> Unit
 ) {
     var name by remember { mutableStateOf(current.businessName) }
     var initialText by remember { mutableStateOf(centsToInputText(current.initialBalanceCents)) }
@@ -1060,6 +1062,12 @@ fun BusinessSettingsDialog(
                             if (onToggleAppLock(enabled)) appLockState = enabled
                         }
                     )
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text("Documentos", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onOpenPrivacyPolicy) { Text("Política de Privacidade") }
+                    TextButton(onClick = onOpenTerms) { Text("Termos de Uso") }
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text("Gerenciamento de dados offline", style = MaterialTheme.typography.labelMedium)
