@@ -35,7 +35,7 @@ O Prumo não controla a disponibilidade, a segurança ou as práticas de privaci
 
 ## 4. Permissões
 
-A versão atual não declara permissões de notificações, câmera, localização ou acesso a contatos. A funcionalidade de notificações programadas não integra o escopo funcional disponível.
+A versão atual não declara permissões de notificações, câmera, localização ou acesso a contatos. O bloqueio opcional usa o AndroidX BiometricPrompt para solicitar biometria ou credencial do dispositivo; o aplicativo não acessa nem armazena modelos biométricos. A funcionalidade de notificações programadas não integra o escopo funcional disponível.
 
 As permissões efetivamente solicitadas podem variar conforme a versão e os recursos implementados. O usuário pode consultar e gerenciar as permissões concedidas nas configurações do Android.
 

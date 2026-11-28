@@ -118,6 +118,7 @@ gradle/         # Catálogo de dependências e configuração do wrapper
 - [Testes e integração contínua](docs/testes-e-ci.md)
 - [Tema, usabilidade e acessibilidade](docs/usabilidade-e-acessibilidade.md)
 - [Preparação e publicação](docs/build-e-publicacao.md)
+- [Ficha do Google Play](docs/google-play-listing.md)
 - [Checklist de publicação](docs/checklist-publicacao.md)
 - [Política de Privacidade](docs/politica-de-privacidade.md)
 - [Termos de Uso](docs/termos-de-uso.md)

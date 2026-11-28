@@ -83,7 +83,8 @@ Este documento é o gate de release. Marque cada item somente após existir evid
 - [ ] Chave de upload protegida e com backup seguro.
 - [ ] Classificação indicativa concluída.
 - [ ] Público-alvo e declarações de conteúdo preenchidos.
-- [ ] URL pública da Política de Privacidade validada.
+- [ ] URL HTTPS pública da Política de Privacidade validada.
+- [ ] Links da Política de Privacidade e dos Termos de Uso testados dentro do app.
 - [ ] Declarações de anúncios, coleta, compartilhamento e segurança de dados correspondem ao app.
 - [ ] Teste interno/fechado concluído conforme exigências vigentes da Play Console.
 - [ ] Notas da versão e plano de rollback preparados.
