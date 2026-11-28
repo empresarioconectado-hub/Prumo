@@ -208,10 +208,10 @@ class PrumoBackupManager(
                 settings.businessName, settings.initialBalanceCents,
                 settings.minCashAlertCents, settings.taxRatePercent
             )
-            if (writeRollbackJournal) deleteRollbackJournal()
+            if (createRollbackJournal) deleteRollbackJournal()
         } catch (restoreError: Exception) {
             try {
-                if (writeRollbackJournal) {
+                if (createRollbackJournal) {
                     recoverPendingRestoreInternal()
                 } else {
                     dao.replaceAllData(
