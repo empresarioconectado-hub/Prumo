@@ -110,7 +110,9 @@ import com.example.ui.screens.SalesDreScreen
 import com.example.ui.screens.StockScreen
 import com.example.ui.viewmodel.PrumoViewModel
 import com.example.util.PrumoReportExporter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 
 private const val ROUTE_OVERVIEW = "overview"
@@ -260,9 +262,11 @@ fun PrumoApp() {
         if (uri != null) coroutineScope.launch {
             try {
                 val json = backupRepository.exportBackupJson(backupPassword)
-                val output = context.contentResolver.openOutputStream(uri)
-                    ?: error("Não foi possível abrir o arquivo de destino.")
-                output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                withContext(Dispatchers.IO) {
+                    val output = context.contentResolver.openOutputStream(uri)
+                        ?: error("Não foi possível abrir o arquivo de destino.")
+                    output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                }
                 backupPassword = ""
                 backupPasswordConfirmation = ""
                 snackbarHostState.showSnackbar("Backup criptografado exportado com sucesso.")
@@ -309,20 +313,22 @@ fun PrumoApp() {
     ) { uri ->
         if (uri != null) coroutineScope.launch {
             try {
-                val input = context.contentResolver.openInputStream(uri)
-                    ?: error("Não foi possível abrir o arquivo selecionado.")
-                val json = input.use { stream ->
-                    val output = ByteArrayOutputStream()
-                    val buffer = ByteArray(8_192)
-                    var totalBytes = 0
-                    while (true) {
-                        val count = stream.read(buffer)
-                        if (count < 0) break
-                        totalBytes += count
-                        require(totalBytes <= 20_000_000) { "O arquivo de backup excede o tamanho permitido." }
-                        output.write(buffer, 0, count)
+                val json = withContext(Dispatchers.IO) {
+                    val input = context.contentResolver.openInputStream(uri)
+                        ?: error("Não foi possível abrir o arquivo selecionado.")
+                    input.use { stream ->
+                        val output = ByteArrayOutputStream()
+                        val buffer = ByteArray(8_192)
+                        var totalBytes = 0
+                        while (true) {
+                            val count = stream.read(buffer)
+                            if (count < 0) break
+                            totalBytes += count
+                            require(totalBytes <= 20_000_000) { "O arquivo de backup excede o tamanho permitido." }
+                            output.write(buffer, 0, count)
+                        }
+                        String(output.toByteArray(), StandardCharsets.UTF_8)
                     }
-                    String(output.toByteArray(), StandardCharsets.UTF_8)
                 }
                 pendingBackupImportJson = json
                 backupPassword = ""
