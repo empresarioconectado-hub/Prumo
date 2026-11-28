@@ -25,7 +25,7 @@ jobs:
 
       - name: Bootstrap Gradle Wrapper
         run: |
-          GRADLE_VERSION="$(sed -n 's#.*gradle-\([0-9.]*\)-bin.zip#\1#p' gradle/wrapper/gradle-wrapper.properties)"
+          GRADLE_VERSION="$(grep -oE 'gradle-[0-9.]+-bin.zip' gradle/wrapper/gradle-wrapper.properties | sed 's/gradle-//; s/-bin.zip//')"
           if [ -z "$GRADLE_VERSION" ]; then
             echo "::error::Não foi possível identificar a versão do Gradle em gradle/wrapper/gradle-wrapper.properties."
             exit 1
@@ -92,7 +92,7 @@ jobs:
 
       - name: Bootstrap Gradle Wrapper
         run: |
-          GRADLE_VERSION="$(sed -n 's#.*gradle-\\([0-9.]*\\)-bin.zip#\\1#p' gradle/wrapper/gradle-wrapper.properties)"
+          GRADLE_VERSION="$(grep -oE 'gradle-[0-9.]+-bin.zip' gradle/wrapper/gradle-wrapper.properties | sed 's/gradle-//; s/-bin.zip//')"
           if [ -z "$GRADLE_VERSION" ]; then
             echo "::error::Não foi possível identificar a versão do Gradle."
             exit 1
