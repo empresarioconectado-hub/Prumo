@@ -12,8 +12,9 @@ O conteúdo financeiro interno mantém o formato `prumo-backup`, versão de esqu
 
 Na exportação, esse conteúdo é protegido por um envelope `prumo-encrypted-backup`:
 - derivação de chave com PBKDF2 e 250.000 iterações;
-- PBKDF2-HMAC-SHA256 em Android 8.0 (API 26) ou superior;
-- PBKDF2-HMAC-SHA1 em Android 7.0/7.1 (API 24/25), para compatibilidade com a versão mínima;
+- PBKDF2-HMAC-SHA256 com senha codificada em UTF-8 em todas as versões Android suportadas;
+- derivação implementada sobre a primitiva HMAC-SHA256 do sistema, mantendo compatibilidade entre Android 7 e versões atuais;
+- leitura de envelopes legados com os identificadores PBKDF2 anteriores para compatibilidade.
 - criptografia autenticada AES-256-GCM;
 - salt aleatório de 16 bytes e IV aleatório de 12 bytes;
 - senha definida pelo usuário com pelo menos 12 caracteres.
@@ -72,4 +73,4 @@ O backup é manual e depende de ação do usuário. Não há garantia de recuper
 
 A exportação lê um snapshot transacional do Room. A substituição das tabelas Room ocorre em uma transação; as preferências do negócio são gravadas posteriormente no DataStore, que é um armazenamento independente. Se uma das etapas falhar, o aplicativo tenta restaurar o snapshot e as preferências anteriores. Ainda não existe atomicidade distribuída e um encerramento abrupto do processo entre as duas gravações não pode ser compensado. Esse cenário precisa de teste específico e permanece como bloqueio para declarar recuperação plenamente resiliente.
 
-A criptografia autenticada protege confidencialidade e integridade do conteúdo cifrado. A validação estrutural continua sendo executada após a descriptografia. Não restaure arquivos recebidos de origem desconhecida. Backups legados sem criptografia permanecem legíveis por compatibilidade e devem ser reexportados no formato protegido.
+A criptografia autenticada protege confidencialidade e integridade do conteúdo cifrado. O formato atual utiliza PBKDF2-HMAC-SHA256 independentemente da versão do Android, permitindo restaurar backups entre dispositivos compatíveis. A validação estrutural continua sendo executada após a descriptografia. Não restaure arquivos recebidos de origem desconhecida. Backups legados sem criptografia permanecem legíveis por compatibilidade e devem ser reexportados no formato protegido.

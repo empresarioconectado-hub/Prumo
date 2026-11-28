@@ -10,7 +10,7 @@ Este documento descreve os controles observáveis na implementação atual e as 
 - Preferências são armazenadas pelo Preferences DataStore.
 - O manifesto Android define `android:allowBackup="false"`.
 - O aplicativo disponibiliza exportação manual de backup JSON protegido por senha.
-- A proteção usa PBKDF2 (250.000 iterações) para derivação da chave e AES-256-GCM para confidencialidade e autenticação do conteúdo.
+- A proteção usa PBKDF2-HMAC-SHA256 (250.000 iterações, senha em UTF-8) para derivação da chave e AES-256-GCM para confidencialidade e autenticação do conteúdo. O mesmo KDF é usado em todas as versões Android suportadas para permitir portabilidade do backup.
 - O arquivo utiliza salt e IV aleatórios; a senha não é persistida pelo aplicativo.
 - Backups antigos sem criptografia são aceitos para migração, mas devem ser reexportados no formato protegido.
 - O manifesto desativa o tráfego HTTP em texto claro por meio de `usesCleartextTraffic=false`.

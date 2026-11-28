@@ -37,7 +37,8 @@ Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo 
 ## Unreleased — preparação para publicação
 
 ### Segurança e integridade
-- Backups exportados agora usam PBKDF2 e AES-256-GCM com senha definida pelo usuário; importação de backups legados permanece disponível.
+- Backups exportados agora usam PBKDF2-HMAC-SHA256 e AES-256-GCM com senha definida pelo usuário; importação de backups legados permanece disponível.
+- A derivação de chave é consistente entre versões Android, permitindo restaurar o arquivo em dispositivos com versões diferentes do sistema.
 - Bloqueio opcional por biometria/credencial Android, com reautenticação no retorno ao app e proteção FLAG_SECURE.
 - Modo de ocultação de valores aplicado também aos indicadores e detalhes financeiros de estoque.
 - Validações de domínio centralizadas para impedir valores inválidos e operações que possam causar overflow.
