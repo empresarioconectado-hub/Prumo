@@ -457,8 +457,11 @@ class PrumoViewModel(
 
     fun loadSampleData() {
         viewModelScope.launch {
-            repository.loadSampleData()
-            _feedbackEvents.tryEmit("Dados de exemplo carregados!")
+            val loaded = repository.loadSampleData()
+            _feedbackEvents.tryEmit(
+                if (loaded) "Dados de demonstração carregados. Você pode removê-los pela opção de limpar dados."
+                else "Os dados de exemplo não foram carregados porque já existem registros. Seus dados foram preservados."
+            )
         }
     }
 
