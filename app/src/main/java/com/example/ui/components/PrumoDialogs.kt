@@ -585,16 +585,19 @@ fun StockMovementDialog(
             if (selectedItem != null) {
                 Button(onClick = {
                     val units = unitsText.toLongOrNull()
-                    val item = selectedItem!!
-                    when {
-                        units == null -> errorMsg = "Informe uma quantidade válida."
-                        units <= 0L && movementType != StockMovementType.ADJUSTMENT ->
-                            errorMsg = "Informe uma quantidade maior que zero."
-                        units > 1_000_000_000L ->
-                            errorMsg = "A quantidade excede o limite permitido."
-                        movementType in setOf(StockMovementType.SALE, StockMovementType.LOSS) && units > item.quantity ->
-                            errorMsg = "Saldo insuficiente (disponível: ${item.quantity} ${item.unit})."
-                        else -> onConfirm(item, movementType, units)
+                    if (units == null) {
+                        errorMsg = "Informe uma quantidade válida."
+                    } else {
+                        val item = selectedItem!!
+                        when {
+                            units <= 0L && movementType != StockMovementType.ADJUSTMENT ->
+                                errorMsg = "Informe uma quantidade maior que zero."
+                            units > 1_000_000_000L ->
+                                errorMsg = "A quantidade excede o limite permitido."
+                            movementType in setOf(StockMovementType.SALE, StockMovementType.LOSS) && units > item.quantity ->
+                                errorMsg = "Saldo insuficiente (disponível: ${item.quantity} ${item.unit})."
+                            else -> onConfirm(item, movementType, units)
+                        }
                     }
                 }) { Text("Confirmar") }
             }
