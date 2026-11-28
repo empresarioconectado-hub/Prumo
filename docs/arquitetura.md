@@ -100,7 +100,7 @@ A camada de exportação produz:
 
 Operações que envolvem mais de uma tabela utilizam métodos transacionais do DAO. A movimentação manual de estoque atualiza saldo e histórico na mesma transação, valida quantidade positiva, impede saída acima do saldo e utiliza aritmética com detecção de overflow. A limpeza das tabelas operacionais também é executada em uma transação única. A venda mantém a atualização de caixa, estoque e histórico em uma transação Room.
 
-A persistência do banco Room e as preferências do DataStore são mecanismos distintos. Não se deve presumir que uma transação Room englobe alterações do DataStore.
+A persistência do banco Room e as preferências do DataStore são mecanismos distintos. Não se deve presumir que uma transação Room englobe alterações do DataStore. Para restauração e limpeza completa, o PrumoBackupManager grava um snapshot anterior com AtomicFile, executa as alterações e remove o registro somente após concluir todas as gravações. Se o processo for encerrado no intervalo, a inicialização tenta restaurar o snapshot antes de abrir a interface. Se o registro não puder ser lido ou recuperado, a interface financeira permanece bloqueada e oferece nova tentativa.
 
 ## Decisões técnicas
 
@@ -109,6 +109,8 @@ A persistência do banco Room e as preferências do DataStore são mecanismos di
 - Operações de persistência são suspensas e executadas fora do fluxo principal da interface.
 - O banco local possui migração versionada.
 - O backup JSON possui campo de versão de esquema.
+- A restauração e a limpeza completa gravam um registro de recuperação em noBackupFilesDir antes de alterar Room e DataStore.
+- MainActivity verifica e processa esse registro antes de exibir as telas financeiras.
 
 ## Evolução
 
@@ -120,6 +122,8 @@ Alterações de arquitetura devem preservar:
 - testes para regras financeiras e operações transacionais.
 
 
-## Limite transacional entre Room e DataStore
+## Recuperação entre Room e DataStore
 
-Room e Preferences DataStore são armazenamentos independentes. Uma transação Room não inclui a escrita no DataStore. Na restauração do backup, os dados Room são substituídos e as preferências são atualizadas em seguida. Uma falha de processo ou de I/O entre essas etapas pode deixar as preferências antigas junto aos dados restaurados. O fluxo precisa de teste de falha e estratégia de compensação ou migração das configurações para o banco antes de ser considerado atomicamente recuperável.
+Room e Preferences DataStore continuam sendo armazenamentos independentes; não existe uma transação distribuída entre eles. A aplicação utiliza um protocolo de recuperação compensatória com AtomicFile para restauração de backup e limpeza completa. O snapshot anterior inclui dados operacionais e preferências locais necessárias à reversão. O registro é temporário, fica em noBackupFilesDir e é removido após a conclusão.
+
+O teste instrumentado PrumoBackupRecoveryInstrumentedTest simula um registro deixado por uma operação interrompida e verifica a recuperação de dados e preferências. Ainda são necessários testes exploratórios em aparelhos reais, inclusive encerramento forçado em diferentes pontos da operação e recuperação de registro corrompido.
