@@ -36,6 +36,11 @@ Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo 
 
 ## Unreleased — preparação para publicação
 
+### Experiência e desempenho
+- Adicionada seleção persistente de tema claro, escuro ou automático.
+- Removidos links legais duplicados na tela de configurações.
+- Criptografia, restauração e operações de arquivo de backup movidas para dispatchers de trabalho, evitando bloquear a interface.
+
 ### Segurança e integridade
 - Backups exportados agora usam PBKDF2-HMAC-SHA256 e AES-256-GCM com senha definida pelo usuário; importação de backups legados permanece disponível.
 - A derivação de chave é consistente entre versões Android, permitindo restaurar o arquivo em dispositivos com versões diferentes do sistema.
