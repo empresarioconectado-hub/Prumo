@@ -119,7 +119,7 @@ fun OverviewScreen(
                             )
                         }
                         Text(
-                            text = "Seu painel está zerado e pronto para os lançamentos reais da sua empresa, ou carregue dados de exemplo para testar Caixa, Estoque e DRE.",
+                            text = "Cadastre sua primeira movimentação ou explore uma demonstração com dados fictícios. Os exemplos só são inseridos em uma base sem registros e nunca apagam informações existentes.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -131,7 +131,7 @@ fun OverviewScreen(
                                     .minimumInteractiveComponentSize()
                                     .testTag("overview_load_sample_button")
                             ) {
-                                Text("Testar com Dados de Exemplo", fontWeight = FontWeight.Bold)
+                                Text("Carregar demonstração", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
