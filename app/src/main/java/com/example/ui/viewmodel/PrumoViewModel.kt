@@ -355,6 +355,17 @@ class PrumoViewModel(
         }
     }
 
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            try {
+                repository.setThemeMode(mode)
+                _feedbackEvents.tryEmit("Aparência atualizada.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível alterar a aparência.")
+            }
+        }
+    }
+
     fun saveSettings(businessName: String, initialBalanceCents: Long, minCashAlertCents: Long, taxRatePercent: Double) {
         viewModelScope.launch {
             try {
