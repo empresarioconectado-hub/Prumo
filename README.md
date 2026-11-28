@@ -26,7 +26,9 @@ A versão atual utiliza armazenamento local no dispositivo. O aplicativo não of
 | Início | Indicadores consolidados, alertas de caixa e estoque, visão mensal e projeção de caixa. |
 | Caixa | Entradas e saídas, categorias, contas, meios de pagamento, situação de pagamento, filtros e histórico mensal. |
 | Estoque | Produtos, custo, preço, saldo, estoque mínimo, ponto de reposição, sugestão de compra e histórico de movimentações. |
-| Vendas | Cliente, vendedor, quantidade, receita, custo, impostos, comissão e situação do recebimento. |
+| Vendas | Registro de vendas com cliente, vendedor, quantidade, receita, custo, impostos, comissão e situação do recebimento. |
+| Venda rápida | Formulário simplificado para venda de balcão, com seleção opcional de um item do estoque, quantidade, total, pagamento e situação do recebimento. |
+| Comprovante | Após a gravação no Room, apresenta comprovante textual com o ID real da venda e abre o Android Sharesheet para compartilhamento pelo usuário, inclusive via WhatsApp quando instalado. |
 | Integração da venda | Uma venda atualiza o estoque, o histórico de movimentações e o lançamento vinculado no caixa dentro de uma transação Room. |
 | DRE gerencial | Receita bruta e líquida, tributos estimados, CMV, comissões, margem de contribuição, despesas fixas e resultado operacional gerencial. |
 | Equipe | Cadastro de vendedores, metas mensais, comissões e ranking de vendas. |
@@ -36,7 +38,7 @@ A versão atual utiliza armazenamento local no dispositivo. O aplicativo não of
 | Relatórios | Exportação de DRE gerencial em PDF e lançamentos do caixa em CSV. |
 | Backup | Exportação e restauração manual de JSON versionado, protegido por senha com AES-256-GCM. |
 
-A lista descreve recursos presentes no código. Itens como integração bancária, sincronização em nuvem, cobrança automática, emissão fiscal, leitura de código de barras e anexos de comprovantes não fazem parte desta versão. O bloqueio opcional por biometria ou credencial do Android está disponível, mas depende de configuração segura no próprio dispositivo.
+A lista descreve recursos presentes no código. A venda rápida registra um item por operação; um carrinho com múltiplos produtos na mesma venda ainda não está implementado. Itens como integração bancária, sincronização em nuvem, cobrança automática, emissão fiscal, leitura de código de barras e anexos de comprovantes não fazem parte desta versão. O bloqueio opcional por biometria ou credencial do Android está disponível, mas depende de configuração segura no próprio dispositivo.
 
 ## Tecnologias
 
