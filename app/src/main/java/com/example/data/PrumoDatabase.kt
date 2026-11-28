@@ -22,7 +22,7 @@ abstract class PrumoDatabase : RoomDatabase() {
     abstract fun prumoDao(): PrumoDao
 
     companion object {
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        internal val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE cash_entries ADD COLUMN saleId INTEGER")
                 db.execSQL("ALTER TABLE stock_items ADD COLUMN initialQuantity INTEGER NOT NULL DEFAULT 0")
