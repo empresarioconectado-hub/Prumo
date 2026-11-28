@@ -180,6 +180,7 @@ interface PrumoDao {
             }
             StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
         }
+        PrumoValidation.stockItem(updated)
         val movementUnits = if (movementType == StockMovementType.ADJUSTMENT) {
             kotlin.math.abs(units - current.quantity)
         } else units
