@@ -344,6 +344,17 @@ class PrumoViewModel(
         return c.timeInMillis
     }
 
+    fun setAppLockEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                repository.setAppLockEnabled(enabled)
+                _feedbackEvents.tryEmit(if (enabled) "Bloqueio do Prumo ativado." else "Bloqueio do Prumo desativado.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível alterar o bloqueio.")
+            }
+        }
+    }
+
     fun saveSettings(businessName: String, initialBalanceCents: Long, minCashAlertCents: Long, taxRatePercent: Double) {
         viewModelScope.launch {
             try {

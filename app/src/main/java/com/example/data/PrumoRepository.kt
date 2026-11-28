@@ -31,6 +31,10 @@ class PrumoRepository(
 
     suspend fun restoreBackupJson(json: String, password: String) = backupManager.restoreBackup(json, password)
 
+    suspend fun setAppLockEnabled(enabled: Boolean) {
+        settingsStore.setAppLockEnabled(enabled)
+    }
+
     suspend fun updateSettings(
         businessName: String,
         initialBalanceCents: Long,

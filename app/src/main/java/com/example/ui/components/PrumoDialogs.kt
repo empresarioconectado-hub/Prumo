@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -979,12 +980,15 @@ fun BusinessSettingsDialog(
     onLoadSampleData: () -> Unit,
     onClearAllData: () -> Unit,
     onExportBackup: () -> Unit,
-    onImportBackup: () -> Unit
+    onImportBackup: () -> Unit,
+    appLockEnabled: Boolean,
+    onToggleAppLock: (Boolean) -> Boolean
 ) {
     var name by remember { mutableStateOf(current.businessName) }
     var initialText by remember { mutableStateOf(centsToInputText(current.initialBalanceCents)) }
     var minCashText by remember { mutableStateOf(centsToInputText(current.minCashAlertCents)) }
     var taxText by remember { mutableStateOf(current.taxRatePercent.toString()) }
+    var appLockState by remember { mutableStateOf(appLockEnabled) }
     var confirmClear by remember { mutableStateOf(false) }
     var confirmRestore by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
@@ -1035,6 +1039,28 @@ fun BusinessSettingsDialog(
                     Text(errorMsg.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
 
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text("Segurança", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Bloquear acesso ao Prumo", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Usa biometria ou o PIN/senha de bloqueio do Android.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = appLockState,
+                        onCheckedChange = { enabled ->
+                            if (onToggleAppLock(enabled)) appLockState = enabled
+                        }
+                    )
+                }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text("Gerenciamento de dados offline", style = MaterialTheme.typography.labelMedium)
                 OutlinedButton(onClick = onExportBackup, modifier = Modifier.fillMaxWidth()) {
