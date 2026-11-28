@@ -64,7 +64,7 @@ class PrumoBackupManager(
     }
 
     suspend fun restoreJson(json: String) = withContext(Dispatchers.IO) {
-        restoreJsonInternal(json, writeRollbackJournal = true)
+        restoreJsonInternal(json, createRollbackJournal = true)
     }
 
     /**
@@ -111,13 +111,13 @@ class PrumoBackupManager(
         settingsJson.remove("rollbackAppLockEnabled")
         settingsJson.remove("rollbackThemeMode")
 
-        restoreJsonInternal(root.toString(), writeRollbackJournal = false)
+        restoreJsonInternal(root.toString(), createRollbackJournal = false)
         settingsStore.setAppLockEnabled(previousAppLockEnabled)
         settingsStore.setThemeMode(previousThemeMode)
         deleteRollbackJournal()
     }
 
-    private suspend fun restoreJsonInternal(json: String, writeRollbackJournal: Boolean) {
+    private suspend fun restoreJsonInternal(json: String, createRollbackJournal: Boolean) {
         require(json.length <= MAX_BACKUP_CHARACTERS) { "O arquivo de backup excede o tamanho permitido." }
         val root = JSONObject(json)
         require(root.getString("format") == "prumo-backup") { "Arquivo não é um backup Prumo." }
@@ -194,7 +194,7 @@ class PrumoBackupManager(
 
         val previousSettings = settingsStore.settingsFlow.first()
         val previousData = dao.readAllDataSnapshot()
-        if (writeRollbackJournal) {
+        if (createRollbackJournal) {
             val journal = JSONObject(serializeBackup(previousSettings, previousData))
             journal.getJSONObject("settings")
                 .put("rollbackAppLockEnabled", previousSettings.appLockEnabled)
