@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.app.Activity
 import android.app.Application
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
@@ -8,17 +9,16 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings as AndroidSettings
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -128,7 +128,7 @@ private const val ROUTE_SALES_DRE = "sales_dre"
 private const val APP_LOCK_KEY_ALIAS = "prumo_app_lock_key"
 private const val ANDROID_KEYSTORE = "AndroidKeyStore"
 private const val APP_LOCK_CIPHER_TRANSFORMATION =
-    "${KeyProperties.KEY_ALGORITHM_AES}/${KeyProperties.BLOCK_MODE_CBC}/${KeyProperties.ENCRYPTION_PADDING_PKCS7}"
+    "${KeyProperties.KEY_ALGORITHM_AES}/${KeyProperties.BLOCK_MODE_GCM}/${KeyProperties.ENCRYPTION_PADDING_NONE}"
 
 private data class NavTabItem(
     val label: String,
@@ -189,6 +189,30 @@ fun PrumoApp() {
         securitySettingsLoaded = true
     }
 
+    val deviceCredentialLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            isAppUnlocked = true
+            appLockError = null
+        } else {
+            isAppUnlocked = false
+            appLockError = "Autenticação cancelada. Confirme sua identidade para continuar."
+        }
+    }
+
+    fun requestDeviceCredential() {
+        val intent = keyguardManager.createConfirmDeviceCredentialIntent(
+            "Desbloquear Prumo",
+            "Confirme o PIN, padrão ou senha do dispositivo."
+        )
+        if (intent != null) {
+            deviceCredentialLauncher.launch(intent)
+        } else {
+            appLockError = "Configure novamente o bloqueio de tela do Android para acessar o Prumo."
+        }
+    }
+
     val biometricPrompt = remember(activity) {
         BiometricPrompt(
             activity,
@@ -211,7 +235,11 @@ fun PrumoApp() {
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     isAppUnlocked = false
-                    appLockError = errString.toString()
+                    if (errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                        requestDeviceCredential()
+                    } else {
+                        appLockError = errString.toString()
+                    }
                 }
 
                 override fun onAuthenticationFailed() {
@@ -222,18 +250,18 @@ fun PrumoApp() {
     }
 
     fun requestAppUnlock() {
-        val promptBuilder = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Desbloquear Prumo")
-            .setSubtitle("Confirme sua identidade para acessar os dados financeiros.")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            promptBuilder.setAllowedAuthenticators(
-                BiometricManager.Authenticators.BIOMETRIC_WEAK or
-                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
-            )
-        } else {
-            promptBuilder.setDeviceCredentialAllowed(true)
+        try {
+            val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Desbloquear Prumo")
+                .setSubtitle("Confirme sua identidade para acessar os dados financeiros.")
+                .setNegativeButtonText("Usar PIN ou senha")
+                .build()
+            val cryptoObject = BiometricPrompt.CryptoObject(createBiometricCipherForAuth())
+            biometricPrompt.authenticate(promptInfo, cryptoObject)
+        } catch (error: Exception) {
+            appLockError = "Não foi possível iniciar a biometria. Use a credencial do dispositivo."
+            requestDeviceCredential()
         }
-        biometricPrompt.authenticate(promptBuilder.build())
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -853,8 +881,8 @@ private fun getOrCreateAppLockSecretKey(): SecretKey {
         APP_LOCK_KEY_ALIAS,
         KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
     )
-        .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
         .setUserAuthenticationRequired(true)
         .setInvalidatedByBiometricEnrollment(true)
         .build()
@@ -864,7 +892,13 @@ private fun getOrCreateAppLockSecretKey(): SecretKey {
 
 private fun createBiometricCipherForAuth(): Cipher {
     val cipher = Cipher.getInstance(APP_LOCK_CIPHER_TRANSFORMATION)
-    cipher.init(Cipher.ENCRYPT_MODE, getOrCreateAppLockSecretKey())
+    try {
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateAppLockSecretKey())
+    } catch (_: KeyPermanentlyInvalidatedException) {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        keyStore.deleteEntry(APP_LOCK_KEY_ALIAS)
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateAppLockSecretKey())
+    }
     return cipher
 }
 
