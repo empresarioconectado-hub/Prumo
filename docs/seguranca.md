@@ -9,14 +9,17 @@ Este documento descreve os controles observáveis na implementação atual e as 
 - Registros operacionais são armazenados em banco local Room.
 - Preferências são armazenadas pelo Preferences DataStore.
 - O manifesto Android define `android:allowBackup="false"`.
-- O aplicativo disponibiliza exportação manual de backup JSON.
+- O aplicativo disponibiliza exportação manual de backup JSON protegido por senha.
+- A proteção usa PBKDF2 (250.000 iterações) para derivação da chave e AES-256-GCM para confidencialidade e autenticação do conteúdo.
+- O arquivo utiliza salt e IV aleatórios; a senha não é persistida pelo aplicativo.
+- Backups antigos sem criptografia são aceitos para migração, mas devem ser reexportados no formato protegido.
 - O manifesto desativa o tráfego HTTP em texto claro por meio de `usesCleartextTraffic=false`.
 - A permissão de notificações foi removida porque o fluxo atual não utiliza notificações agendadas.
 - O restaurador valida estrutura, faixas de valores, IDs duplicados e referências antes de substituir os dados Room.
 - Movimentações manuais de estoque são persistidas junto ao saldo em uma transação Room.
 - O modo de privacidade oculta valores em telas compatíveis, sem criptografar os dados.
 
-O acesso ao dispositivo desbloqueado ou a arquivos exportados pode expor informações do negócio. Recomenda-se manter bloqueio de tela, atualizações de segurança e controle de acesso ao aparelho.
+O acesso ao dispositivo desbloqueado ou a backups legados sem criptografia pode expor informações do negócio. Recomenda-se manter bloqueio de tela, atualizações de segurança e controle de acesso ao aparelho.
 
 ## Transporte e serviços remotos
 
@@ -64,4 +67,4 @@ Consulte [SECURITY.md](../SECURITY.md) para o procedimento de comunicação de v
 
 ## Limitações conhecidas
 
-A versão atual não oferece bloqueio biométrico/PIN nem criptografia própria do arquivo de backup. O Room e o DataStore não participam de uma transação comum; falhas entre as etapas de restauração precisam de tratamento adicional. O modo de privacidade é apenas visual. O uso de mecanismos de segurança do Android não elimina riscos de dispositivo comprometido, compartilhamento indevido ou engenharia social.
+A versão atual não oferece bloqueio biométrico/PIN. O Room e o DataStore não participam de uma transação comum; falhas entre as etapas de restauração precisam de tratamento adicional. O modo de privacidade é apenas visual. O uso de mecanismos de segurança do Android não elimina riscos de dispositivo comprometido, compartilhamento indevido ou engenharia social.

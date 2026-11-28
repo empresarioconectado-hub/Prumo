@@ -8,26 +8,25 @@ O backup não é automático. A responsabilidade por exportar, armazenar e prote
 
 ## Conteúdo do arquivo
 
-O arquivo JSON contém:
-- identificador de formato: `prumo-backup`;
-- versão do esquema: `1`;
-- data/hora de exportação em milissegundos;
-- configurações do negócio;
-- lançamentos de caixa;
-- produtos;
-- movimentações de estoque;
-- vendas;
-- vendedores;
-- despesas fixas.
+O conteúdo financeiro interno mantém o formato `prumo-backup`, versão de esquema `1`, com configurações, lançamentos, produtos, movimentações, vendas, vendedores e despesas fixas. Valores monetários são serializados em centavos inteiros.
 
-Os valores monetários são serializados em centavos inteiros.
+Na exportação, esse conteúdo é protegido por um envelope `prumo-encrypted-backup`:
+- derivação de chave com PBKDF2 e 250.000 iterações;
+- PBKDF2-HMAC-SHA256 em Android 8.0 (API 26) ou superior;
+- PBKDF2-HMAC-SHA1 em Android 7.0/7.1 (API 24/25), para compatibilidade com a versão mínima;
+- criptografia autenticada AES-256-GCM;
+- salt aleatório de 16 bytes e IV aleatório de 12 bytes;
+- senha definida pelo usuário com pelo menos 12 caracteres.
+
+A senha não é salva no dispositivo nem incluída no arquivo. Sem ela, o backup criptografado não pode ser restaurado.
 
 ## Exportar
 
 1. Abra as configurações do Prumo.
 2. Selecione a opção de exportação de backup.
-3. Escolha o destino e confirme o salvamento do arquivo JSON.
-4. Verifique se o arquivo foi salvo no local escolhido.
+3. Defina e confirme uma senha com pelo menos 12 caracteres.
+4. Escolha o destino e confirme o salvamento do arquivo JSON criptografado.
+5. Guarde a senha separadamente do arquivo e verifique se o arquivo foi salvo.
 
 O nome sugerido pelo aplicativo inclui a identificação Prumo e um timestamp.
 
@@ -45,7 +44,7 @@ A restauração verifica o identificador do formato, a versão do esquema, o lim
 
 ## Compatibilidade
 
-A implementação atual aceita o formato `prumo-backup` com `schemaVersion = 1`. Arquivos de outros formatos ou versões não são compatíveis com o restaurador atual.
+A implementação atual aceita o envelope criptografado `prumo-encrypted-backup` versão 1, que contém o formato interno `prumo-backup` com `schemaVersion = 1`. Backups legados em JSON sem criptografia, no formato interno versão 1, continuam aceitos para facilitar migração. Arquivos de outros formatos ou versões não são compatíveis.
 
 Ao modificar o modelo de dados:
 - avalie o impacto no formato JSON;
@@ -73,4 +72,4 @@ O backup é manual e depende de ação do usuário. Não há garantia de recuper
 
 A substituição das tabelas Room ocorre em uma transação. As preferências do negócio são gravadas posteriormente no DataStore, que é um armazenamento independente. Portanto, ainda não existe atomicidade distribuída entre o banco e as preferências. Antes de uso em produção, devem ser adicionados testes de falha nessa fronteira e uma estratégia de recuperação que restaure também as configurações anteriores.
 
-O arquivo JSON não é criptografado nesta versão. A validação estrutural reduz a aceitação de arquivos inválidos, mas não autentica a origem nem protege a confidencialidade do conteúdo. Não restaure arquivos recebidos de origem desconhecida.
+A criptografia autenticada protege confidencialidade e integridade do conteúdo cifrado. A validação estrutural continua sendo executada após a descriptografia. Não restaure arquivos recebidos de origem desconhecida. Backups legados sem criptografia permanecem legíveis por compatibilidade e devem ser reexportados no formato protegido.

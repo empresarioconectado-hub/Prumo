@@ -33,7 +33,7 @@ A versão atual utiliza armazenamento local no dispositivo. O aplicativo não of
 | Despesas fixas | Lançamentos classificados por categoria para análise mensal. |
 | Privacidade visual | Ocultação de valores monetários nas telas compatíveis. |
 | Relatórios | Exportação de DRE gerencial em PDF e lançamentos do caixa em CSV. |
-| Backup | Exportação e restauração manual de arquivo JSON versionado. |
+| Backup | Exportação e restauração manual de JSON versionado, protegido por senha com AES-256-GCM. |
 
 A lista descreve recursos presentes no código. Itens como integração bancária, sincronização em nuvem, cobrança automática, emissão fiscal, leitura de código de barras, anexos de comprovantes e autenticação biométrica não devem ser considerados disponíveis nesta versão.
 

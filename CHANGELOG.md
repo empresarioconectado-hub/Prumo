@@ -37,6 +37,7 @@ Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo 
 ## Unreleased — preparação para publicação
 
 ### Segurança e integridade
+- Backups exportados agora usam PBKDF2 e AES-256-GCM com senha definida pelo usuário; importação de backups legados permanece disponível.
 - Movimentações de estoque atualizam saldo e histórico dentro de uma transação Room.
 - Adicionada proteção contra overflow em entradas e estornos de estoque.
 - Limpeza de dados operacionais centralizada em transação Room.
