@@ -1,7 +1,30 @@
 package com.example.ui
 
+import android.app.Activity
 import android.app.Application
+import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
+import android.security.keystore.KeyProperties
+import android.app.KeyguardManager
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings as AndroidSettings
+import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,10 +40,15 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +65,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +80,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -64,6 +95,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.data.PrumoDatabase
 import com.example.data.PrumoRepository
 import com.example.data.SettingsDataStore
+import com.example.model.BusinessSettings
 import com.example.model.CashEntry
 import com.example.model.CashEntryType
 import com.example.model.FixedExpense
@@ -84,12 +116,19 @@ import com.example.ui.screens.SalesDreScreen
 import com.example.ui.screens.StockScreen
 import com.example.ui.viewmodel.PrumoViewModel
 import com.example.util.PrumoReportExporter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 
 private const val ROUTE_OVERVIEW = "overview"
 private const val ROUTE_CASH = "cash_flow"
 private const val ROUTE_STOCK = "stock"
 private const val ROUTE_SALES_DRE = "sales_dre"
+private const val APP_LOCK_KEY_ALIAS = "prumo_app_lock_key"
+private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+private const val APP_LOCK_CIPHER_TRANSFORMATION =
+    "${KeyProperties.KEY_ALGORITHM_AES}/${KeyProperties.BLOCK_MODE_GCM}/${KeyProperties.ENCRYPTION_PADDING_NONE}"
 
 private data class NavTabItem(
     val label: String,
@@ -112,7 +151,9 @@ private sealed interface ActiveDialog {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrumoApp() {
-    val context = LocalContext.current.applicationContext as Application
+    val activity = LocalContext.current.findFragmentActivity()
+        ?: error("A tela do Prumo precisa estar vinculada a uma FragmentActivity.")
+    val context = activity.applicationContext as Application
     val viewModel: PrumoViewModel = viewModel(
         factory = remember(context) {
             object : ViewModelProvider.Factory {
@@ -128,25 +169,188 @@ fun PrumoApp() {
     )
 
     val dashboardData by viewModel.dashboardState.collectAsStateWithLifecycle()
+    val securitySettingsFlow = remember(context) { SettingsDataStore(context).settingsFlow }
+    val securitySettings by securitySettingsFlow.collectAsStateWithLifecycle(
+        initialValue = BusinessSettings(appLockEnabled = true)
+    )
+    var securitySettingsLoaded by remember { mutableStateOf(false) }
+    val appLockEnabled = securitySettings.appLockEnabled
     var hideValues by rememberSaveable { mutableStateOf(false) }
+    var isAppUnlocked by remember { mutableStateOf(false) }
+    var isCredentialFallbackInProgress by remember { mutableStateOf(false) }
+    var appLockError by remember { mutableStateOf<String?>(null) }
+    val keyguardManager = remember(activity) {
+        activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+    }
+    var deviceHasSecureLock by remember { mutableStateOf(false) }
+
+    LaunchedEffect(securitySettingsFlow, keyguardManager) {
+        securitySettingsFlow.first()
+        deviceHasSecureLock = keyguardManager.isDeviceSecure
+        securitySettingsLoaded = true
+    }
+
+    val deviceCredentialLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        isCredentialFallbackInProgress = false
+        if (result.resultCode == Activity.RESULT_OK) {
+            isAppUnlocked = true
+            appLockError = null
+        } else {
+            isAppUnlocked = false
+            appLockError = "Autenticação cancelada. Confirme sua identidade para continuar."
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    fun requestDeviceCredential() {
+        // CryptoObject cannot be combined with DEVICE_CREDENTIAL fallback.
+        // Use the system Keyguard challenge as a separate, trusted path.
+        val intent = keyguardManager.createConfirmDeviceCredentialIntent(
+            "Desbloquear Prumo",
+            "Confirme o PIN, padrão ou senha do dispositivo."
+        )
+        if (intent != null) {
+            isCredentialFallbackInProgress = true
+            runCatching { deviceCredentialLauncher.launch(intent) }
+                .onFailure {
+                    isCredentialFallbackInProgress = false
+                    appLockError = "Não foi possível abrir a confirmação de credencial do Android."
+                }
+        } else {
+            isCredentialFallbackInProgress = false
+            appLockError = "Configure novamente o bloqueio de tela do Android para acessar o Prumo."
+        }
+    }
+
+    val biometricPrompt = remember(activity) {
+        BiometricPrompt(
+            activity,
+            ContextCompat.getMainExecutor(activity),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    val cipher = result.cryptoObject?.cipher
+                    val cryptoVerified = runCatching {
+                        cipher?.doFinal("prumo_unlock_check".toByteArray(StandardCharsets.UTF_8))
+                    }.isSuccess && cipher != null
+
+                    if (cryptoVerified) {
+                        isAppUnlocked = true
+                        appLockError = null
+                    } else {
+                        isAppUnlocked = false
+                        appLockError = "Falha de validação criptográfica da autenticação."
+                    }
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    isAppUnlocked = false
+                    val credentialFallbackRequired = errorCode in setOf(
+                        BiometricPrompt.ERROR_NEGATIVE_BUTTON,
+                        BiometricPrompt.ERROR_NO_BIOMETRICS,
+                        BiometricPrompt.ERROR_HW_NOT_PRESENT,
+                        BiometricPrompt.ERROR_HW_UNAVAILABLE,
+                        BiometricPrompt.ERROR_LOCKOUT,
+                        BiometricPrompt.ERROR_LOCKOUT_PERMANENT
+                    )
+                    if (credentialFallbackRequired) {
+                        requestDeviceCredential()
+                    } else {
+                        appLockError = errString.toString()
+                    }
+                }
+
+                override fun onAuthenticationFailed() {
+                    appLockError = "Não foi possível confirmar sua identidade. Tente novamente."
+                }
+            }
+        )
+    }
+
+    fun requestAppUnlock() {
+        try {
+            val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Desbloquear Prumo")
+                .setSubtitle("Confirme sua identidade para acessar os dados financeiros.")
+                .setNegativeButtonText("Usar PIN ou senha")
+                .build()
+            val cryptoObject = BiometricPrompt.CryptoObject(createBiometricCipherForAuth())
+            biometricPrompt.authenticate(promptInfo, cryptoObject)
+        } catch (error: Exception) {
+            appLockError = "Não foi possível iniciar a biometria. Use a credencial do dispositivo."
+            requestDeviceCredential()
+        }
+    }
+
+    LaunchedEffect(securitySettingsLoaded, appLockEnabled, deviceHasSecureLock) {
+        if (securitySettingsLoaded && appLockEnabled && deviceHasSecureLock && !isAppUnlocked && !isCredentialFallbackInProgress) {
+            requestAppUnlock()
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, appLockEnabled, securitySettingsLoaded, biometricPrompt) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    if (securitySettingsLoaded && appLockEnabled) {
+                        isAppUnlocked = false
+                    }
+                }
+                Lifecycle.Event.ON_START -> {
+                    deviceHasSecureLock = keyguardManager.isDeviceSecure
+                    if (securitySettingsLoaded && appLockEnabled && deviceHasSecureLock && !isAppUnlocked && !isCredentialFallbackInProgress) {
+                        appLockError = null
+                        requestAppUnlock()
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    SideEffect {
+        if (!securitySettingsLoaded || appLockEnabled) {
+            activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val backupRepository = remember(context) {
         PrumoRepository(PrumoDatabase.getInstance(context).prumoDao(), SettingsDataStore(context))
     }
+    var backupPassword by remember { mutableStateOf("") }
+    var backupPasswordConfirmation by remember { mutableStateOf("") }
+    var pendingBackupImportJson by remember { mutableStateOf<String?>(null) }
+    var showBackupExportPasswordDialog by remember { mutableStateOf(false) }
+    var showBackupImportPasswordDialog by remember { mutableStateOf(false) }
     val exportBackupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) coroutineScope.launch {
             try {
-                val json = backupRepository.exportBackupJson()
-                val output = context.contentResolver.openOutputStream(uri)
-                    ?: error("Não foi possível abrir o arquivo de destino.")
-                output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
-                snackbarHostState.showSnackbar("Backup exportado com sucesso.")
+                val json = backupRepository.exportBackupJson(backupPassword)
+                withContext(Dispatchers.IO) {
+                    val output = context.contentResolver.openOutputStream(uri)
+                        ?: error("Não foi possível abrir o arquivo de destino.")
+                    output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                }
+                backupPassword = ""
+                backupPasswordConfirmation = ""
+                snackbarHostState.showSnackbar("Backup criptografado exportado com sucesso.")
             } catch (error: Exception) {
+                backupPassword = ""
+                backupPasswordConfirmation = ""
                 snackbarHostState.showSnackbar("Falha ao exportar backup: ${error.message}")
             }
+        } else {
+            backupPassword = ""
+            backupPasswordConfirmation = ""
         }
     }
     val exportDrePdfLauncher = rememberLauncherForActivityResult(
@@ -182,12 +386,28 @@ fun PrumoApp() {
     ) { uri ->
         if (uri != null) coroutineScope.launch {
             try {
-                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                    ?: error("Não foi possível ler o arquivo selecionado.")
-                backupRepository.restoreBackupJson(json)
-                snackbarHostState.showSnackbar("Backup restaurado. Os dados locais foram substituídos.")
+                val json = withContext(Dispatchers.IO) {
+                    val input = context.contentResolver.openInputStream(uri)
+                        ?: error("Não foi possível abrir o arquivo selecionado.")
+                    input.use { stream ->
+                        val output = ByteArrayOutputStream()
+                        val buffer = ByteArray(8_192)
+                        var totalBytes = 0
+                        while (true) {
+                            val count = stream.read(buffer)
+                            if (count < 0) break
+                            totalBytes += count
+                            require(totalBytes <= 20_000_000) { "O arquivo de backup excede o tamanho permitido." }
+                            output.write(buffer, 0, count)
+                        }
+                        String(output.toByteArray(), StandardCharsets.UTF_8)
+                    }
+                }
+                pendingBackupImportJson = json
+                backupPassword = ""
+                showBackupImportPasswordDialog = true
             } catch (error: Exception) {
-                snackbarHostState.showSnackbar("Falha ao restaurar backup: ${error.message}")
+                snackbarHostState.showSnackbar("Falha ao ler backup: ${error.message}")
             }
         }
     }
@@ -365,7 +585,8 @@ fun PrumoApp() {
                                 onAddItem = { activeDialog = ActiveDialog.StockForm(null) },
                                 onEditItem = { activeDialog = ActiveDialog.StockForm(it) },
                                 onMoveItem = { activeDialog = ActiveDialog.StockMovementForm(it) },
-                                onDeleteItem = viewModel::deleteStockItem
+                                onDeleteItem = viewModel::deleteStockItem,
+                                hideValues = hideValues
                             )
                         }
                         composable(ROUTE_SALES_DRE) {
@@ -479,9 +700,235 @@ fun PrumoApp() {
                 },
                 onLoadSampleData = { viewModel.loadSampleData() },
                 onClearAllData = { viewModel.clearAllData() },
-                onExportBackup = { exportBackupLauncher.launch("prumo-backup-${System.currentTimeMillis()}.json") },
-                onImportBackup = { importBackupLauncher.launch(arrayOf("application/json", "text/json")) }
+                onExportBackup = {
+                    activeDialog = null
+                    backupPassword = ""
+                    backupPasswordConfirmation = ""
+                    showBackupExportPasswordDialog = true
+                },
+                onImportBackup = {
+                    activeDialog = null
+                    importBackupLauncher.launch(arrayOf("application/json", "text/json"))
+                },
+                appLockEnabled = appLockEnabled,
+                onThemeModeChange = { mode -> viewModel.setThemeMode(mode) },
+                onOpenPrivacyPolicy = {
+                    activeDialog = null
+                    activity.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/politica-de-privacidade.md"))
+                    )
+                },
+                onOpenTerms = {
+                    activeDialog = null
+                    activity.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/termos-de-uso.md"))
+                    )
+                },
+                onToggleAppLock = { enabled ->
+                    if (enabled && !keyguardManager.isDeviceSecure) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Configure um PIN, padrão ou senha de bloqueio no Android antes de ativar a proteção do Prumo.")
+                        }
+                        false
+                    } else {
+                        viewModel.setAppLockEnabled(enabled)
+                        if (enabled) {
+                            isAppUnlocked = true
+                            appLockError = null
+                        }
+                        true
+                    }
+                }
             )
         }
     }
+    if (showBackupExportPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showBackupExportPasswordDialog = false
+                backupPassword = ""
+                backupPasswordConfirmation = ""
+            },
+            title = { Text("Proteger backup") },
+            text = {
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    Text("Crie uma senha com pelo menos 12 caracteres. Ela será necessária para restaurar este arquivo e não é armazenada pelo Prumo.")
+                    OutlinedTextField(
+                        value = backupPassword,
+                        onValueChange = { backupPassword = it.take(128) },
+                        label = { Text("Senha do backup") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                    OutlinedTextField(
+                        value = backupPasswordConfirmation,
+                        onValueChange = { backupPasswordConfirmation = it.take(128) },
+                        label = { Text("Confirme a senha") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                    if (backupPasswordConfirmation.isNotEmpty() && backupPassword != backupPasswordConfirmation) {
+                        Text("As senhas não coincidem.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = backupPassword.length >= 12 && backupPassword == backupPasswordConfirmation,
+                    onClick = {
+                        showBackupExportPasswordDialog = false
+                        exportBackupLauncher.launch("prumo-backup-${System.currentTimeMillis()}.json")
+                    }
+                ) { Text("Exportar criptografado") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBackupExportPasswordDialog = false
+                    backupPassword = ""
+                    backupPasswordConfirmation = ""
+                }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (showBackupImportPasswordDialog) {
+        val encryptedImport = pendingBackupImportJson?.contains("prumo-encrypted-backup") == true
+        AlertDialog(
+            onDismissRequest = {
+                showBackupImportPasswordDialog = false
+                pendingBackupImportJson = null
+                backupPassword = ""
+            },
+            title = { Text("Restaurar backup") },
+            text = {
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (encryptedImport) "Informe a senha usada na exportação. Sem a senha correta, o arquivo não poderá ser restaurado."
+                        else "Este é um backup antigo sem criptografia. Você pode restaurá-lo sem senha; faça um novo backup protegido após a importação."
+                    )
+                    if (encryptedImport) {
+                        OutlinedTextField(
+                            value = backupPassword,
+                            onValueChange = { backupPassword = it.take(128) },
+                            label = { Text("Senha do backup") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = pendingBackupImportJson != null && (!encryptedImport || backupPassword.isNotBlank()),
+                    onClick = {
+                        val json = pendingBackupImportJson ?: return@TextButton
+                        val password = backupPassword
+                        showBackupImportPasswordDialog = false
+                        pendingBackupImportJson = null
+                        backupPassword = ""
+                        coroutineScope.launch {
+                            try {
+                                backupRepository.restoreBackupJson(json, password)
+                                snackbarHostState.showSnackbar("Backup restaurado. Os dados locais foram substituídos.")
+                            } catch (error: Exception) {
+                                snackbarHostState.showSnackbar("Falha ao restaurar backup: ${error.message}")
+                            }
+                        }
+                    }
+                ) { Text("Restaurar dados") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBackupImportPasswordDialog = false
+                    pendingBackupImportJson = null
+                    backupPassword = ""
+                }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (!securitySettingsLoaded || (appLockEnabled && !isAppUnlocked)) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+            ) {
+                Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.padding(bottom = 12.dp))
+                Text(
+                    if (securitySettingsLoaded) "Prumo bloqueado" else "Preparando proteção",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    when {
+                        !securitySettingsLoaded -> "Aguarde enquanto as configurações de segurança são carregadas."
+                        deviceHasSecureLock -> "Use a biometria ou a credencial de bloqueio do dispositivo para acessar os dados financeiros."
+                        else -> "Configure um PIN, padrão ou senha nas configurações do Android para proteger o Prumo."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (appLockError != null) {
+                    Text(
+                        appLockError.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                if (securitySettingsLoaded) {
+                    Button(
+                        onClick = {
+                            if (deviceHasSecureLock) requestAppUnlock()
+                            else activity.startActivity(Intent(AndroidSettings.ACTION_SECURITY_SETTINGS))
+                        },
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text(if (deviceHasSecureLock) "Desbloquear" else "Configurar bloqueio")
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+private fun getOrCreateAppLockSecretKey(): SecretKey {
+    val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+    (keyStore.getKey(APP_LOCK_KEY_ALIAS, null) as? SecretKey)?.let { return it }
+
+    val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
+    val keySpec = KeyGenParameterSpec.Builder(
+        APP_LOCK_KEY_ALIAS,
+        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+    )
+        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+        .setUserAuthenticationRequired(true)
+        .setInvalidatedByBiometricEnrollment(true)
+        .build()
+    keyGenerator.init(keySpec)
+    return keyGenerator.generateKey()
+}
+
+private fun createBiometricCipherForAuth(): Cipher {
+    val cipher = Cipher.getInstance(APP_LOCK_CIPHER_TRANSFORMATION)
+    try {
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateAppLockSecretKey())
+    } catch (_: KeyPermanentlyInvalidatedException) {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        keyStore.deleteEntry(APP_LOCK_KEY_ALIAS)
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateAppLockSecretKey())
+    }
+    return cipher
+}
+
+private tailrec fun Context.findFragmentActivity(): FragmentActivity? = when (this) {
+    is FragmentActivity -> this
+    is ContextWrapper -> baseContext.findFragmentActivity()
+    else -> null
 }

@@ -32,3 +32,33 @@ Quando houver releases, cada versão deverá registrar:
 - limitações conhecidas.
 
 Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo o `versionCode` Android crescente.
+
+
+## Unreleased — preparação para publicação
+
+### Experiência e desempenho
+- Adicionada seleção persistente de tema claro, escuro ou automático.
+- Removidos links legais duplicados na tela de configurações.
+- Criptografia, restauração e operações de arquivo de backup movidas para dispatchers de trabalho, evitando bloquear a interface.
+
+### Segurança e integridade
+- Backups exportados agora usam PBKDF2-HMAC-SHA256 e AES-256-GCM com senha definida pelo usuário; importação de backups legados permanece disponível.
+- A derivação de chave é consistente entre versões Android, permitindo restaurar o arquivo em dispositivos com versões diferentes do sistema.
+- Bloqueio opcional por biometria/credencial Android, com reautenticação no retorno ao app e proteção FLAG_SECURE.
+- Modo de ocultação de valores aplicado também aos indicadores e detalhes financeiros de estoque.
+- Validações de domínio centralizadas para impedir valores inválidos e operações que possam causar overflow.
+- Operações de exclusão em lote e restauração tentam recuperar o estado anterior em caso de falha.
+- Movimentações de estoque atualizam saldo e histórico dentro de uma transação Room.
+- Adicionada proteção contra overflow em entradas e estornos de estoque.
+- Limpeza de dados operacionais centralizada em transação Room.
+- Validação estrutural ampliada para backups JSON, incluindo tamanho máximo, faixas, identificadores e referências.
+- Removida permissão de notificações não utilizada e desabilitado tráfego HTTP em texto claro.
+
+### Interface e qualidade
+- Corrigida a propagação do estado de ocultação de valores na projeção diária do caixa.
+- Corrigido o saldo inicial exibido no fluxo de caixa para respeitar o período selecionado.
+- CI ampliado com Android Lint, testes instrumentados em emulador e análise CodeQL; Dependabot habilitado para Gradle e GitHub Actions.
+
+### Documentação
+- README reorganizado com escopo real da versão.
+- Adicionadas diretrizes de usabilidade, acessibilidade e checklist de publicação.

@@ -76,9 +76,15 @@ val PrumoShapes = Shapes(
 @Composable
 fun PrumoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: String = "SYSTEM",
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val useDarkTheme = when (themeMode) {
+        "LIGHT" -> false
+        "DARK" -> true
+        else -> darkTheme
+    }
+    val colorScheme = if (useDarkTheme) DarkColorScheme else LightColorScheme
     MaterialTheme(
         colorScheme = colorScheme,
         typography = PrumoTypography,

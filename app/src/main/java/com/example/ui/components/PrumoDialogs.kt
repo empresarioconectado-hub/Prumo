@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -555,7 +556,7 @@ fun StockMovementDialog(
 
                     Text("Tipo de movimentação", style = MaterialTheme.typography.labelMedium)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StockMovementType.entries.filter { it != StockMovementType.ADJUSTMENT }.forEach { m ->
+                        StockMovementType.entries.forEach { m ->
                             FilterChip(
                                 selected = movementType == m,
                                 onClick = { movementType = m },
@@ -568,7 +569,7 @@ fun StockMovementDialog(
                     OutlinedTextField(
                         value = unitsText,
                         onValueChange = { unitsText = it.filter(Char::isDigit) },
-                        label = { Text("Quantidade (${selectedItem!!.unit})") },
+                        label = { Text(if (movementType == StockMovementType.ADJUSTMENT) "Novo saldo (${selectedItem!!.unit})" else "Quantidade (${selectedItem!!.unit})") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -583,13 +584,20 @@ fun StockMovementDialog(
         confirmButton = {
             if (selectedItem != null) {
                 Button(onClick = {
-                    val units = unitsText.toLongOrNull() ?: 0L
-                    val item = selectedItem!!
-                    when {
-                        units <= 0L -> errorMsg = "Informe uma quantidade maior que zero."
-                        movementType != StockMovementType.PURCHASE && units > item.quantity ->
-                            errorMsg = "Saldo insuficiente (disponível: ${item.quantity} ${item.unit})."
-                        else -> onConfirm(item, movementType, units)
+                    val units = unitsText.toLongOrNull()
+                    if (units == null) {
+                        errorMsg = "Informe uma quantidade válida."
+                    } else {
+                        val item = selectedItem!!
+                        when {
+                            units <= 0L && movementType != StockMovementType.ADJUSTMENT ->
+                                errorMsg = "Informe uma quantidade maior que zero."
+                            units > 1_000_000_000L ->
+                                errorMsg = "A quantidade excede o limite permitido."
+                            movementType in setOf(StockMovementType.SALE, StockMovementType.LOSS) && units > item.quantity ->
+                                errorMsg = "Saldo insuficiente (disponível: ${item.quantity} ${item.unit})."
+                            else -> onConfirm(item, movementType, units)
+                        }
                     }
                 }) { Text("Confirmar") }
             }
@@ -979,12 +987,18 @@ fun BusinessSettingsDialog(
     onLoadSampleData: () -> Unit,
     onClearAllData: () -> Unit,
     onExportBackup: () -> Unit,
-    onImportBackup: () -> Unit
+    onImportBackup: () -> Unit,
+    appLockEnabled: Boolean,
+    onToggleAppLock: (Boolean) -> Boolean,
+    onThemeModeChange: (String) -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
+    onOpenTerms: () -> Unit
 ) {
     var name by remember { mutableStateOf(current.businessName) }
     var initialText by remember { mutableStateOf(centsToInputText(current.initialBalanceCents)) }
     var minCashText by remember { mutableStateOf(centsToInputText(current.minCashAlertCents)) }
     var taxText by remember { mutableStateOf(current.taxRatePercent.toString()) }
+    var appLockState by remember { mutableStateOf(appLockEnabled) }
     var confirmClear by remember { mutableStateOf(false) }
     var confirmRestore by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
@@ -1036,6 +1050,62 @@ fun BusinessSettingsDialog(
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text("Aparência", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(
+                        selected = current.themeMode == "SYSTEM",
+                        onClick = { onThemeModeChange("SYSTEM") },
+                        label = { Text("Sistema") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = current.themeMode == "LIGHT",
+                        onClick = { onThemeModeChange("LIGHT") },
+                        label = { Text("Claro") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = current.themeMode == "DARK",
+                        onClick = { onThemeModeChange("DARK") },
+                        label = { Text("Escuro") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Text(
+                    "Escolha se o Prumo acompanha o Android ou mantém um tema fixo.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text("Segurança", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Bloquear acesso ao Prumo", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Usa biometria compatível ou PIN, padrão ou senha de bloqueio do Android.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = appLockState,
+                        onCheckedChange = { enabled ->
+                            if (onToggleAppLock(enabled)) appLockState = enabled
+                        }
+                    )
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text("Documentos", style = MaterialTheme.typography.labelMedium)
+                Column {
+                    TextButton(onClick = onOpenPrivacyPolicy) { Text("Política de Privacidade") }
+                    TextButton(onClick = onOpenTerms) { Text("Termos de Uso") }
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text("Gerenciamento de dados offline", style = MaterialTheme.typography.labelMedium)
                 OutlinedButton(onClick = onExportBackup, modifier = Modifier.fillMaxWidth()) {
                     Text("Exportar backup JSON")
@@ -1068,23 +1138,6 @@ fun BusinessSettingsDialog(
                             }
                         }
                     }
-                }
-
-                Text(
-                    "Privacidade e condições de uso",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-                TextButton(onClick = {
-                    uriHandler.openUri("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/politica-de-privacidade.md")
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Política de Privacidade")
-                }
-                TextButton(onClick = {
-                    uriHandler.openUri("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/termos-de-uso.md")
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Termos de Uso")
                 }
 
                 OutlinedButton(

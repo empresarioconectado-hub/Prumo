@@ -71,6 +71,17 @@ class PrumoLogicTest {
     }
 
     @Test
+    fun saleFinancialValues_supportUpperTaxRateAndNegativeContributionMargin() {
+        val validSale = SaleRecord(
+            description = "Venda", clientName = "Cliente", sellerName = "Vendedor",
+            grossAmountCents = 10_000L, costAmountCents = 4_000L,
+            taxPercent = 100.0, commissionPercent = 0.0, saleDateMillis = 1L
+        )
+        assertEquals(10_000L, validSale.taxCents)
+        assertEquals(-4_000L, validSale.contributionMarginCents)
+    }
+
+    @Test
     fun stockTurnover_usesAverageInventory() {
         val item = StockItem(
             id = 1L, sku = "SKU-1", name = "Produto", category = "Mercadorias",

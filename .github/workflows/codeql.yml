@@ -1,0 +1,59 @@
+name: CodeQL Security Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: prumo-codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze Kotlin and Java
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: manual
+
+      - name: Bootstrap Gradle Wrapper
+        run: |
+          GRADLE_VERSION="$(grep -oE 'gradle-[0-9.]+-bin.zip' gradle/wrapper/gradle-wrapper.properties | sed 's/gradle-//; s/-bin.zip//')"
+          if [ -z "$GRADLE_VERSION" ]; then
+            echo "::error::Não foi possível identificar a versão do Gradle."
+            exit 1
+          fi
+          curl --fail --location --retry 3 "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" --output /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          "/tmp/gradle-${GRADLE_VERSION}/bin/gradle" wrapper --gradle-version "${GRADLE_VERSION}" --distribution-type bin
+          chmod +x ./gradlew
+
+      - name: Compile Kotlin sources for CodeQL
+        run: ./gradlew --no-configuration-cache :app:compileDebugKotlin
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:java-kotlin"

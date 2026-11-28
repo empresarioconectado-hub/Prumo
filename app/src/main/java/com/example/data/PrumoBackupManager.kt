@@ -1,7 +1,11 @@
 package com.example.data
 
+import android.util.AtomicFile
 import com.example.model.*
+import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -13,8 +17,34 @@ class PrumoBackupManager(
     private val dao: PrumoDao,
     private val settingsStore: SettingsDataStore
 ) {
+    companion object {
+        internal const val ROLLBACK_FILE_NAME = "prumo_restore_rollback.json"
+        private const val MAX_BACKUP_CHARACTERS = 10_000_000
+        private const val MAX_ENCRYPTED_BACKUP_CHARACTERS = 15_000_000
+    }
+
+    suspend fun exportEncryptedJson(password: String): String = withContext(Dispatchers.IO) {
+        PrumoBackupCrypto.encrypt(exportJson(), password)
+    }
+
+    suspend fun restoreBackup(json: String, password: String) = withContext(Dispatchers.IO) {
+        require(json.length <= MAX_ENCRYPTED_BACKUP_CHARACTERS) { "O arquivo de backup excede o tamanho permitido." }
+        val format = JSONObject(json).optString("format")
+        if (format == "prumo-encrypted-backup") {
+            restoreJson(PrumoBackupCrypto.decrypt(json, password))
+        } else {
+            // Compatibility with existing, unencrypted schemaVersion 1 backups.
+            restoreJson(json)
+        }
+    }
+
     suspend fun exportJson(): String {
         val settings = settingsStore.settingsFlow.first()
+        val snapshot = dao.readAllDataSnapshot()
+        return serializeBackup(settings, snapshot)
+    }
+
+    private fun serializeBackup(settings: BusinessSettings, snapshot: PrumoDataSnapshot): String {
         val root = JSONObject()
             .put("format", "prumo-backup")
             .put("schemaVersion", 1)
@@ -24,16 +54,71 @@ class PrumoBackupManager(
                 .put("initialBalanceCents", settings.initialBalanceCents)
                 .put("minCashAlertCents", settings.minCashAlertCents)
                 .put("taxRatePercent", settings.taxRatePercent))
-            .put("cashEntries", JSONArray().apply { dao.allCashEntries().forEach { put(it.toJson()) } })
-            .put("stockItems", JSONArray().apply { dao.allStockItems().forEach { put(it.toJson()) } })
-            .put("stockMovements", JSONArray().apply { dao.allStockMovements().forEach { put(it.toJson()) } })
-            .put("sales", JSONArray().apply { dao.allSales().forEach { put(it.toJson()) } })
-            .put("sellers", JSONArray().apply { dao.allSellers().forEach { put(it.toJson()) } })
-            .put("fixedExpenses", JSONArray().apply { dao.allFixedExpenses().forEach { put(it.toJson()) } })
+            .put("cashEntries", JSONArray().apply { snapshot.cashEntries.forEach { put(it.toJson()) } })
+            .put("stockItems", JSONArray().apply { snapshot.stockItems.forEach { put(it.toJson()) } })
+            .put("stockMovements", JSONArray().apply { snapshot.stockMovements.forEach { put(it.toJson()) } })
+            .put("sales", JSONArray().apply { snapshot.sales.forEach { put(it.toJson()) } })
+            .put("sellers", JSONArray().apply { snapshot.sellers.forEach { put(it.toJson()) } })
+            .put("fixedExpenses", JSONArray().apply { snapshot.fixedExpenses.forEach { put(it.toJson()) } })
         return root.toString(2)
     }
 
-    suspend fun restoreJson(json: String) {
+    suspend fun restoreJson(json: String) = withContext(Dispatchers.IO) {
+        restoreJsonInternal(json, createRollbackJournal = true)
+    }
+
+    /**
+     * Runs before the financial UI is shown. If the process died during a restore,
+     * the previous Room snapshot and device preferences are restored from app-private storage.
+     */
+    suspend fun recoverPendingRestore() = withContext(Dispatchers.IO) {
+        recoverPendingRestoreInternal()
+    }
+
+    suspend fun clearAllDataSafely() = withContext(Dispatchers.IO) {
+        val previousSettings = settingsStore.settingsFlow.first()
+        val previousData = dao.readAllDataSnapshot()
+        val journal = JSONObject(serializeBackup(previousSettings, previousData))
+        journal.getJSONObject("settings")
+            .put("rollbackAppLockEnabled", previousSettings.appLockEnabled)
+            .put("rollbackThemeMode", previousSettings.themeMode)
+        writeRollbackJournal(journal.toString(2))
+
+        try {
+            dao.clearAllDataAtomic()
+            settingsStore.resetDefaults()
+            deleteRollbackJournal()
+        } catch (clearError: Exception) {
+            try {
+                recoverPendingRestoreInternal()
+            } catch (rollbackError: Exception) {
+                clearError.addSuppressed(rollbackError)
+            }
+            throw IllegalStateException(
+                "A limpeza não foi concluída. O aplicativo tentou recuperar os dados anteriores.",
+                clearError
+            )
+        }
+    }
+
+    private suspend fun recoverPendingRestoreInternal() {
+        if (!hasRollbackJournal()) return
+
+        val root = JSONObject(readRollbackJournal())
+        val settingsJson = root.getJSONObject("settings")
+        val previousAppLockEnabled = settingsJson.optBoolean("rollbackAppLockEnabled", false)
+        val previousThemeMode = settingsJson.optString("rollbackThemeMode", "SYSTEM")
+        settingsJson.remove("rollbackAppLockEnabled")
+        settingsJson.remove("rollbackThemeMode")
+
+        restoreJsonInternal(root.toString(), createRollbackJournal = false)
+        settingsStore.setAppLockEnabled(previousAppLockEnabled)
+        settingsStore.setThemeMode(previousThemeMode)
+        deleteRollbackJournal()
+    }
+
+    private suspend fun restoreJsonInternal(json: String, createRollbackJournal: Boolean) {
+        require(json.length <= MAX_BACKUP_CHARACTERS) { "O arquivo de backup excede o tamanho permitido." }
         val root = JSONObject(json)
         require(root.getString("format") == "prumo-backup") { "Arquivo não é um backup Prumo." }
         require(root.getInt("schemaVersion") == 1) { "Versão de backup não suportada." }
@@ -52,17 +137,128 @@ class PrumoBackupManager(
         val sellers = root.getJSONArray("sellers").toList { it.toSellerProfile() }
         val expenses = root.getJSONArray("fixedExpenses").toList { it.toFixedExpense() }
 
+        PrumoValidation.settings(settings)
+        cash.forEach(PrumoValidation::cashEntry)
+        stock.forEach(PrumoValidation::stockItem)
+        sales.forEach(PrumoValidation::sale)
+        sellers.forEach(PrumoValidation::seller)
+        expenses.forEach(PrumoValidation::fixedExpense)
+
         require(cash.all { it.amountCents >= 0L } && sales.all { it.grossAmountCents >= 0L }) {
             "Backup contém valores financeiros inválidos."
         }
-        require(stock.all { it.quantity >= 0L && it.initialQuantity >= 0L }) {
-            "Backup contém quantidades de estoque inválidas."
+        require(settings.businessName.isNotBlank() &&
+            settings.minCashAlertCents >= 0L && settings.taxRatePercent.isFinite() &&
+            settings.taxRatePercent in 0.0..100.0) { "Configurações financeiras inválidas no backup." }
+        require(cash.all { it.id > 0L && it.description.isNotBlank() && it.amountCents >= 0L &&
+            it.dateMillis > 0L && it.type in setOf("INCOME", "EXPENSE") &&
+            it.status in setOf("PAID", "PENDING") }) { "Backup contém lançamentos inválidos." }
+        require(stock.all { it.id > 0L && it.sku.isNotBlank() && it.name.isNotBlank() &&
+            it.quantity >= 0L && it.initialQuantity >= 0L && it.minStock >= 0L &&
+            it.unitCostCents >= 0L && it.unitPriceCents >= 0L && it.avgDailySales.isFinite() &&
+            it.avgDailySales >= 0.0 && it.leadTimeDays >= 0L }) { "Backup contém produtos inválidos." }
+        require(sales.all { it.id > 0L && it.description.isNotBlank() && it.quantity > 0L &&
+            it.grossAmountCents > 0L && it.costAmountCents >= 0L &&
+            it.taxPercent.isFinite() && it.taxPercent in 0.0..100.0 &&
+            it.commissionPercent.isFinite() && it.commissionPercent in 0.0..100.0 &&
+            it.paymentStatus in setOf("PAID", "PENDING") }) { "Backup contém vendas inválidas." }
+        require(expenses.all { it.id > 0L && it.description.isNotBlank() &&
+            it.amountCents >= 0L && it.dateMillis > 0L }) { "Backup contém despesas inválidas." }
+        require(sellers.all { it.id > 0L && it.name.isNotBlank() && it.monthlyGoalCents >= 0L &&
+            it.commissionPercent.isFinite() && it.commissionPercent in 0.0..100.0 }) { "Backup contém vendedores inválidos." }
+        require(movements.all { it.id > 0L && it.stockItemId > 0L && it.quantity > 0L &&
+            it.movementType in setOf("PURCHASE", "SALE", "LOSS", "ADJUSTMENT") &&
+            it.unitCostCents >= 0L && it.dateMillis > 0L }) { "Backup contém movimentações inválidas." }
+        require(cash.map { it.id }.distinct().size == cash.size &&
+            stock.map { it.id }.distinct().size == stock.size &&
+            sales.map { it.id }.distinct().size == sales.size &&
+            sellers.map { it.id }.distinct().size == sellers.size &&
+            expenses.map { it.id }.distinct().size == expenses.size &&
+            movements.map { it.id }.distinct().size == movements.size) {
+            "Backup contém identificadores duplicados."
         }
-        dao.replaceAllData(cash, stock, sales, sellers, expenses, movements)
-        settingsStore.updateSettings(
-            settings.businessName, settings.initialBalanceCents,
-            settings.minCashAlertCents, settings.taxRatePercent
-        )
+        require(stock.map { it.sku.lowercase() }.distinct().size == stock.size) {
+            "Backup contém SKUs duplicados."
+        }
+        val stockIds = stock.map { it.id }.toSet()
+        require(sales.all { it.stockItemId == null || it.stockItemId in stockIds }) {
+            "Backup contém referências a produtos inexistentes."
+        }
+        val saleIds = sales.map { it.id }.toSet()
+        require(cash.mapNotNull { it.saleId }.distinct().size == cash.count { it.saleId != null }) {
+            "Backup contém mais de um lançamento vinculado à mesma venda."
+        }
+        require(cash.all { it.saleId == null || it.saleId in saleIds }) {
+            "Backup contém lançamentos vinculados a vendas inexistentes."
+        }
+
+        val previousSettings = settingsStore.settingsFlow.first()
+        val previousData = dao.readAllDataSnapshot()
+        if (createRollbackJournal) {
+            val journal = JSONObject(serializeBackup(previousSettings, previousData))
+            journal.getJSONObject("settings")
+                .put("rollbackAppLockEnabled", previousSettings.appLockEnabled)
+                .put("rollbackThemeMode", previousSettings.themeMode)
+            writeRollbackJournal(journal.toString(2))
+        }
+
+        try {
+            dao.replaceAllData(cash, stock, sales, sellers, expenses, movements)
+            settingsStore.updateSettings(
+                settings.businessName, settings.initialBalanceCents,
+                settings.minCashAlertCents, settings.taxRatePercent
+            )
+            if (createRollbackJournal) deleteRollbackJournal()
+        } catch (restoreError: Exception) {
+            try {
+                if (createRollbackJournal) {
+                    recoverPendingRestoreInternal()
+                } else {
+                    dao.replaceAllData(
+                        previousData.cashEntries, previousData.stockItems, previousData.sales,
+                        previousData.sellers, previousData.fixedExpenses, previousData.stockMovements
+                    )
+                    settingsStore.updateSettings(
+                        previousSettings.businessName, previousSettings.initialBalanceCents,
+                        previousSettings.minCashAlertCents, previousSettings.taxRatePercent
+                    )
+                }
+            } catch (rollbackError: Exception) {
+                restoreError.addSuppressed(rollbackError)
+            }
+            throw IllegalStateException(
+                "A restauração não foi concluída. O aplicativo tentou recuperar os dados anteriores.",
+                restoreError
+            )
+        }
+    }
+
+    private val rollbackFile: AtomicFile by lazy {
+        AtomicFile(File(settingsStore.applicationContext.noBackupFilesDir, ROLLBACK_FILE_NAME))
+    }
+
+    private fun hasRollbackJournal(): Boolean {
+        val baseFile = rollbackFile.baseFile
+        return baseFile.exists() || File(baseFile.path + ".bak").exists()
+    }
+
+    private fun readRollbackJournal(): String =
+        rollbackFile.openRead().bufferedReader(Charsets.UTF_8).use { it.readText() }
+
+    private fun writeRollbackJournal(content: String) {
+        val output = rollbackFile.startWrite()
+        try {
+            output.write(content.toByteArray(Charsets.UTF_8))
+            rollbackFile.finishWrite(output)
+        } catch (error: Exception) {
+            rollbackFile.failWrite(output)
+            throw error
+        }
+    }
+
+    private fun deleteRollbackJournal() {
+        rollbackFile.delete()
+        check(!hasRollbackJournal()) { "Não foi possível finalizar o registro de recuperação." }
     }
 
     private fun CashEntry.toJson() = JSONObject()

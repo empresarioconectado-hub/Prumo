@@ -57,6 +57,13 @@ Variáveis utilizadas:
 - `STORE_PASSWORD`: senha do keystore;
 - `KEY_PASSWORD`: senha da chave.
 
+O workflow permite gerar o AAB por execução manual com `build_release=true`, desde que estejam configuradas as secrets:
+- `RELEASE_KEYSTORE_BASE64`: conteúdo do keystore codificado em Base64;
+- `RELEASE_STORE_PASSWORD`: senha do keystore;
+- `RELEASE_KEY_PASSWORD`: senha da chave.
+
+O alias esperado é `upload`. O workflow grava o keystore apenas no diretório temporário do runner e publica o AAB como artefato temporário. Não configure essas secrets até que a chave de upload de produção esteja criada e armazenada com backup seguro.
+
 O alias configurado no Gradle é `upload`.
 
 Antes de gerar uma versão release:
@@ -78,6 +85,10 @@ Para cada versão distribuída:
 - valide instalação e atualização sobre a versão anterior;
 - gere e arquive os artefatos e informações de assinatura em local seguro.
 
+## Validação automatizada
+
+O workflow atual executa testes unitários, Android Lint, build debug e testes instrumentados em emulador. Um workflow CodeQL analisa Kotlin/Java e o Dependabot monitora atualizações de dependências. Um job separado e manual gera o AAB assinado somente quando solicitado e quando as secrets de assinatura estiverem configuradas.
+
 ## Checklist de publicação
 
 - [ ] Revisão do código e aprovação do Pull Request.
@@ -97,3 +108,11 @@ Para cada versão distribuída:
 ## Situação
 
 A existência de um workflow que compila o APK de depuração não significa que o aplicativo esteja pronto para publicação. A distribuição pública depende das verificações técnicas, operacionais, legais e de loja listadas acima.
+
+
+## Bloqueios que não podem ser resolvidos apenas pelo GitHub
+
+- A assinatura de produção depende de keystore e senhas que devem ser criados e guardados pelo proprietário.
+- A política de privacidade precisa de URL pública e contato verdadeiro do responsável.
+- A classificação, o público-alvo, o formulário de segurança de dados e os testes de publicação dependem da Play Console.
+- Testes de hardware, TalkBack, biometria e comportamento em dispositivos reais exigem dispositivos ou emuladores executados.

@@ -344,66 +344,116 @@ class PrumoViewModel(
         return c.timeInMillis
     }
 
+    fun setAppLockEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                repository.setAppLockEnabled(enabled)
+                _feedbackEvents.tryEmit(if (enabled) "Bloqueio do Prumo ativado." else "Bloqueio do Prumo desativado.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível alterar o bloqueio.")
+            }
+        }
+    }
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            try {
+                repository.setThemeMode(mode)
+                _feedbackEvents.tryEmit("Aparência atualizada.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível alterar a aparência.")
+            }
+        }
+    }
+
     fun saveSettings(businessName: String, initialBalanceCents: Long, minCashAlertCents: Long, taxRatePercent: Double) {
         viewModelScope.launch {
-            repository.updateSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent)
-            _feedbackEvents.tryEmit("Parâmetros atualizados.")
+            try {
+                repository.updateSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent)
+                _feedbackEvents.tryEmit("Parâmetros atualizados.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível atualizar os parâmetros.")
+            }
         }
     }
 
     fun saveCashEntry(entry: CashEntry) {
         viewModelScope.launch {
-            val saved = repository.saveCashEntry(entry)
-            _feedbackEvents.tryEmit(
-                if (!saved) "Este lançamento pertence a uma venda. Edite a venda para manter os dados consistentes."
-                else if (entry.id == 0L) "Lançamento salvo no caixa." else "Lançamento atualizado."
-            )
+            try {
+                val saved = repository.saveCashEntry(entry)
+                _feedbackEvents.tryEmit(
+                    if (!saved) "Este lançamento pertence a uma venda. Edite a venda para manter os dados consistentes."
+                    else if (entry.id == 0L) "Lançamento salvo no caixa." else "Lançamento atualizado."
+                )
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível salvar o lançamento.")
+            }
         }
     }
 
     fun markAsPaid(entry: CashEntry) {
         viewModelScope.launch {
-            val next = if (entry.entryStatus == CashEntryStatus.PENDING) CashEntryStatus.PAID else CashEntryStatus.PENDING
-            repository.markCashEntryStatus(entry.id, next)
-            _feedbackEvents.tryEmit("Status alterado para ${next.label}.")
+            try {
+                val next = if (entry.entryStatus == CashEntryStatus.PENDING) CashEntryStatus.PAID else CashEntryStatus.PENDING
+                repository.markCashEntryStatus(entry.id, next)
+                _feedbackEvents.tryEmit("Status alterado para ${next.label}.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível alterar o status do lançamento.")
+            }
         }
     }
 
     fun deleteCashEntry(id: Long) {
         viewModelScope.launch {
-            val deleted = repository.deleteCashEntry(id)
-            _feedbackEvents.tryEmit(
-                if (deleted) "Lançamento removido."
-                else "Este lançamento pertence a uma venda. Exclua a venda para remover o recebimento vinculado."
-            )
+            try {
+                val deleted = repository.deleteCashEntry(id)
+                _feedbackEvents.tryEmit(
+                    if (deleted) "Lançamento removido."
+                    else "Este lançamento pertence a uma venda. Exclua a venda para remover o recebimento vinculado."
+                )
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível remover o lançamento.")
+            }
         }
     }
 
     fun saveStockItem(item: StockItem) {
         viewModelScope.launch {
-            repository.saveStockItem(item)
-            _feedbackEvents.tryEmit(if (item.id == 0L) "Produto cadastrado no estoque." else "Produto atualizado.")
+            try {
+                repository.saveStockItem(item)
+                _feedbackEvents.tryEmit(if (item.id == 0L) "Produto cadastrado no estoque." else "Produto atualizado.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível salvar o produto.")
+            }
         }
     }
 
     fun applyStockMovement(item: StockItem, movementType: StockMovementType, units: Long) {
         viewModelScope.launch {
-            val ok = repository.applyStockMovement(item, movementType, units)
-            if (ok) {
-                _feedbackEvents.tryEmit("Estoque atualizado: ${item.sku}.")
-            } else {
-                _feedbackEvents.tryEmit("Saldo insuficiente para a saída em ${item.sku}.")
+            try {
+                val ok = repository.applyStockMovement(item, movementType, units)
+                if (ok) {
+                    _feedbackEvents.tryEmit("Estoque atualizado: ${item.sku}.")
+                } else {
+                    _feedbackEvents.tryEmit("Produto não encontrado no estoque.")
+                }
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível movimentar o estoque.")
             }
         }
     }
 
     fun deleteStockItem(id: Long) {
         viewModelScope.launch {
-            val deleted = repository.deleteStockItem(id)
-            _feedbackEvents.tryEmit(
-                if (deleted) "Produto removido."
-                else "Não é possível excluir este produto: existem vendas vinculadas ao seu histórico."
-            )
+            try {
+                val deleted = repository.deleteStockItem(id)
+                _feedbackEvents.tryEmit(
+                    if (deleted) "Produto removido."
+                    else "Não é possível excluir este produto: existem vendas vinculadas ao seu histórico."
+                )
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível remover o produto.")
+            }
         }
     }
 
@@ -422,50 +472,78 @@ class PrumoViewModel(
 
     fun deleteSale(id: Long) {
         viewModelScope.launch {
-            repository.deleteSale(id)
-            _feedbackEvents.tryEmit("Venda removida.")
+            try {
+                repository.deleteSale(id)
+                _feedbackEvents.tryEmit("Venda removida.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível excluir a venda.")
+            }
         }
     }
 
     fun saveSeller(seller: SellerProfile) {
         viewModelScope.launch {
-            repository.saveSeller(seller)
-            _feedbackEvents.tryEmit(if (seller.id == 0L) "Vendedor cadastrado." else "Meta atualizada.")
+            try {
+                repository.saveSeller(seller)
+                _feedbackEvents.tryEmit(if (seller.id == 0L) "Vendedor cadastrado." else "Meta atualizada.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível salvar o vendedor.")
+            }
         }
     }
 
     fun deleteSeller(id: Long) {
         viewModelScope.launch {
-            repository.deleteSeller(id)
-            _feedbackEvents.tryEmit("Vendedor removido.")
+            try {
+                repository.deleteSeller(id)
+                _feedbackEvents.tryEmit("Vendedor removido.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível remover o vendedor.")
+            }
         }
     }
 
     fun saveFixedExpense(expense: FixedExpense) {
         viewModelScope.launch {
-            repository.saveFixedExpense(expense)
-            _feedbackEvents.tryEmit(if (expense.id == 0L) "Despesa fixa registrada." else "Despesa fixa atualizada.")
+            try {
+                repository.saveFixedExpense(expense)
+                _feedbackEvents.tryEmit(if (expense.id == 0L) "Despesa fixa registrada." else "Despesa fixa atualizada.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível salvar a despesa.")
+            }
         }
     }
 
     fun deleteFixedExpense(id: Long) {
         viewModelScope.launch {
-            repository.deleteFixedExpense(id)
-            _feedbackEvents.tryEmit("Despesa fixa removida.")
+            try {
+                repository.deleteFixedExpense(id)
+                _feedbackEvents.tryEmit("Despesa fixa removida.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível remover a despesa.")
+            }
         }
     }
 
     fun loadSampleData() {
         viewModelScope.launch {
-            repository.loadSampleData()
-            _feedbackEvents.tryEmit("Dados de exemplo carregados!")
+            try {
+                repository.loadSampleData()
+                _feedbackEvents.tryEmit("Dados de exemplo carregados!")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível carregar os dados de exemplo.")
+            }
         }
     }
 
     fun clearAllData() {
         viewModelScope.launch {
-            repository.clearAllData()
-            _feedbackEvents.tryEmit("Dados limpos. Pronto para começar do zero!")
+            try {
+                repository.clearAllData()
+                _feedbackEvents.tryEmit("Dados limpos. Pronto para começar do zero!")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "A limpeza não foi concluída.")
+            }
         }
     }
 }

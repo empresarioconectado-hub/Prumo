@@ -139,7 +139,7 @@ fun SalesDreScreen(
 
             when (subTab) {
                 0 -> {
-                    item { DreSummaryCard(data = data) }
+                    item { DreSummaryCard(data = data, hideValues = hideValues) }
                 }
 
                 1 -> {
@@ -181,7 +181,8 @@ fun SalesDreScreen(
                             SellerRankingCard(
                                 item = rank,
                                 onEdit = sellerProfile?.let { prof -> { onEditSeller(prof) } },
-                                onDelete = sellerProfile?.let { prof -> { onDeleteSeller(prof.id) } }
+                                onDelete = sellerProfile?.let { prof -> { onDeleteSeller(prof.id) } },
+                                hideValues = hideValues
                             )
                         }
                     }
@@ -210,7 +211,8 @@ fun SalesDreScreen(
                             SaleRecordCard(
                                 sale = sale,
                                 onEdit = { onEditSale(sale) },
-                                onDelete = { onDeleteSale(sale.id) }
+                                onDelete = { onDeleteSale(sale.id) },
+                                hideValues = hideValues
                             )
                         }
                     }
@@ -261,7 +263,8 @@ fun SalesDreScreen(
                             FixedExpenseCard(
                                 expense = exp,
                                 onEdit = { onEditFixedExpense(exp) },
-                                onDelete = { onDeleteFixedExpense(exp.id) }
+                                onDelete = { onDeleteFixedExpense(exp.id) },
+                                hideValues = hideValues
                             )
                         }
                     }
@@ -272,7 +275,7 @@ fun SalesDreScreen(
 }
 
 @Composable
-private fun DreSummaryCard(data: PrumoDashboardData) {
+private fun DreSummaryCard(data: PrumoDashboardData, hideValues: Boolean) {
     val dre = data.dreMonth
     Surface(
         shape = RoundedCornerShape(18.dp),
@@ -290,6 +293,11 @@ private fun DreSummaryCard(data: PrumoDashboardData) {
                 text = "DRE Gerencial · ${data.selectedMonth.formattedLabel()}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Resultado gerencial estimado com base nas vendas e despesas fixas cadastradas. Não representa lucro líquido contábil. Os lançamentos do caixa são independentes e não são sincronizados automaticamente com esta lista.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "Alíquota padrão configurada: ${formatPercent(data.settings.taxRatePercent)}",
@@ -347,12 +355,12 @@ private fun DreSummaryCard(data: PrumoDashboardData) {
                 ) {
                     Column {
                         Text(
-                            text = "(=) Lucro Líquido Final",
+                            text = "(=) Resultado Gerencial Estimado",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Margem líquida: ${formatPercent(dre.netProfitPercent)}",
+                            text = "Margem gerencial: ${formatPercent(dre.netProfitPercent)}",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -401,7 +409,8 @@ private fun DreLine(
 private fun SellerRankingCard(
     item: SellerRankingItem,
     onEdit: (() -> Unit)?,
-    onDelete: (() -> Unit)?
+    onDelete: (() -> Unit)?,
+    hideValues: Boolean
 ) {
     val isDark = isSystemInDarkTheme()
     val pct = (item.goalProgress * 100f).toDouble()
@@ -500,7 +509,8 @@ private fun SellerRankingCard(
 private fun SaleRecordCard(
     sale: SaleRecord,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    hideValues: Boolean
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -550,7 +560,8 @@ private fun SaleRecordCard(
 private fun FixedExpenseCard(
     expense: FixedExpense,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    hideValues: Boolean
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),

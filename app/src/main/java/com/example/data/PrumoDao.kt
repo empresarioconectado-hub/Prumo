@@ -9,10 +9,29 @@ import androidx.room.Update
 import com.example.model.*
 import kotlinx.coroutines.flow.Flow
 
+data class PrumoDataSnapshot(
+    val cashEntries: List<CashEntry>,
+    val stockItems: List<StockItem>,
+    val stockMovements: List<StockMovement>,
+    val sales: List<SaleRecord>,
+    val sellers: List<SellerProfile>,
+    val fixedExpenses: List<FixedExpense>
+)
+
 @Dao
 interface PrumoDao {
     @Query("SELECT * FROM cash_entries ORDER BY dateMillis DESC, id DESC") fun observeCashEntries(): Flow<List<CashEntry>>
     @Query("SELECT * FROM cash_entries") suspend fun allCashEntries(): List<CashEntry>
+
+    @Transaction
+    suspend fun readAllDataSnapshot(): PrumoDataSnapshot = PrumoDataSnapshot(
+        cashEntries = allCashEntries(),
+        stockItems = allStockItems(),
+        stockMovements = allStockMovements(),
+        sales = allSales(),
+        sellers = allSellers(),
+        fixedExpenses = allFixedExpenses()
+    )
     @Query("SELECT * FROM cash_entries WHERE id = :id LIMIT 1") suspend fun cashEntryById(id: Long): CashEntry?
     @Query("SELECT * FROM cash_entries WHERE saleId = :saleId LIMIT 1") suspend fun cashEntryForSale(saleId: Long): CashEntry?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertCashEntry(entry: CashEntry): Long
@@ -33,6 +52,7 @@ interface PrumoDao {
     @Query("SELECT * FROM stock_items ORDER BY name ASC") fun observeStockItems(): Flow<List<StockItem>>
     @Query("SELECT * FROM stock_items") suspend fun allStockItems(): List<StockItem>
     @Query("SELECT * FROM stock_items WHERE id = :id LIMIT 1") suspend fun stockItemById(id: Long): StockItem?
+    @Query("SELECT COUNT(*) FROM stock_items WHERE sku = :sku COLLATE NOCASE AND id != :excludeId") suspend fun countStockItemsWithSku(sku: String, excludeId: Long): Int
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockItem(item: StockItem): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockItems(items: List<StockItem>)
     @Update suspend fun updateStockItem(item: StockItem)
@@ -86,7 +106,7 @@ interface PrumoDao {
             val item = stockItemById(saved.stockItemId) ?: error("Produto vinculado não encontrado.")
             require(saved.quantity > 0L) { "A quantidade da venda deve ser maior que zero." }
             require(item.quantity >= saved.quantity) { "Estoque insuficiente para ${item.name}. Disponível: ${item.quantity}." }
-            updateStockItem(item.copy(quantity = item.quantity - saved.quantity, soldUnitsCount = item.soldUnitsCount + saved.quantity))
+            updateStockItem(item.copy(quantity = item.quantity - saved.quantity, soldUnitsCount = Math.addExact(item.soldUnitsCount, saved.quantity)))
             insertStockMovement(StockMovement(
                 stockItemId = item.id, sku = item.sku, productName = item.name,
                 movementType = StockMovementType.SALE.name, quantity = saved.quantity,
@@ -115,6 +135,7 @@ interface PrumoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSellers(sellers: List<SellerProfile>)
     @Query("SELECT * FROM seller_profiles ORDER BY name ASC") fun observeSellers(): Flow<List<SellerProfile>>
     @Query("SELECT * FROM seller_profiles") suspend fun allSellers(): List<SellerProfile>
+    @Query("SELECT * FROM seller_profiles WHERE id = :id LIMIT 1") suspend fun sellerById(id: Long): SellerProfile?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSeller(seller: SellerProfile): Long
     @Update suspend fun updateSeller(seller: SellerProfile)
     @Query("DELETE FROM seller_profiles WHERE id = :id") suspend fun deleteSellerById(id: Long)
@@ -123,10 +144,62 @@ interface PrumoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertFixedExpenses(expenses: List<FixedExpense>)
     @Query("SELECT * FROM fixed_expenses ORDER BY dateMillis DESC, id DESC") fun observeFixedExpenses(): Flow<List<FixedExpense>>
     @Query("SELECT * FROM fixed_expenses") suspend fun allFixedExpenses(): List<FixedExpense>
+    @Query("SELECT * FROM fixed_expenses WHERE id = :id LIMIT 1") suspend fun fixedExpenseById(id: Long): FixedExpense?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertFixedExpense(expense: FixedExpense): Long
     @Update suspend fun updateFixedExpense(expense: FixedExpense)
     @Query("DELETE FROM fixed_expenses WHERE id = :id") suspend fun deleteFixedExpenseById(id: Long)
     @Query("DELETE FROM fixed_expenses") suspend fun clearFixedExpenses()
+
+    @Transaction
+    suspend fun clearAllDataAtomic() {
+        clearCashEntries()
+        clearStockItems()
+        clearStockMovements()
+        clearSales()
+        clearSellers()
+        clearFixedExpenses()
+    }
+
+    @Transaction
+    suspend fun applyStockMovementAtomic(itemId: Long, movementType: StockMovementType, units: Long): Boolean {
+        if (movementType == StockMovementType.ADJUSTMENT) {
+            require(units in 0L..PrumoValidation.MAX_STOCK_UNITS) { "O novo saldo está fora do limite permitido." }
+        } else {
+            require(units in 1L..PrumoValidation.MAX_STOCK_UNITS) { "A quantidade deve ser maior que zero." }
+        }
+        val current = stockItemById(itemId) ?: return false
+        PrumoValidation.stockItem(current)
+        val updated = when (movementType) {
+            StockMovementType.PURCHASE -> current.copy(quantity = Math.addExact(current.quantity, units))
+            StockMovementType.SALE -> {
+                require(current.quantity >= units) { "Estoque insuficiente para ${current.name}." }
+                current.copy(quantity = current.quantity - units, soldUnitsCount = Math.addExact(current.soldUnitsCount, units))
+            }
+            StockMovementType.LOSS -> {
+                require(current.quantity >= units) { "Estoque insuficiente para registrar a perda de ${current.name}." }
+                current.copy(quantity = current.quantity - units, lossUnitsCount = Math.addExact(current.lossUnitsCount, units))
+            }
+            StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
+        }
+        PrumoValidation.stockItem(updated)
+        val movementUnits = if (movementType == StockMovementType.ADJUSTMENT) {
+            kotlin.math.abs(units - current.quantity)
+        } else units
+        if (movementUnits == 0L) return true
+        updateStockItem(updated)
+        insertStockMovement(StockMovement(
+            stockItemId = current.id, sku = current.sku, productName = current.name,
+            movementType = movementType.name, quantity = movementUnits, unitCostCents = current.unitCostCents,
+            referenceNote = when (movementType) {
+                StockMovementType.PURCHASE -> "Compra / reposição"
+                StockMovementType.SALE -> "Saída manual de estoque"
+                StockMovementType.LOSS -> "Perda / avaria"
+                StockMovementType.ADJUSTMENT -> "Ajuste manual de saldo: ${current.quantity} → ${units}"
+            },
+            dateMillis = System.currentTimeMillis()
+        ))
+        return true
+    }
 
     @Transaction
     suspend fun replaceAllData(
@@ -148,7 +221,7 @@ private suspend fun PrumoDao.reverseSaleStock(sale: SaleRecord) {
     val stockId = sale.stockItemId ?: return
     val item = stockItemById(stockId) ?: return
     updateStockItem(item.copy(
-        quantity = item.quantity + sale.quantity,
+        quantity = Math.addExact(item.quantity, sale.quantity),
         soldUnitsCount = (item.soldUnitsCount - sale.quantity).coerceAtLeast(0L)
     ))
     insertStockMovement(StockMovement(

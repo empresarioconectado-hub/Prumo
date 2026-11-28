@@ -1,6 +1,6 @@
 # Termos de Uso — Prumo Gestão
 
-**Última atualização: 27 de novembro de 2026**
+**Última atualização: 28 de novembro de 2026**
 
 Estes termos descrevem as condições gerais de utilização do Prumo Gestão, aplicativo Android destinado ao apoio à organização financeira e operacional de pequenos negócios.
 
@@ -32,19 +32,20 @@ O usuário deve conferir os resultados e buscar orientação de profissional con
 
 ## 4. Armazenamento local
 
-Na versão descrita, os registros operacionais são mantidos localmente no dispositivo Android. O usuário é responsável por proteger o aparelho, controlar o acesso ao dispositivo e manter o sistema atualizado.
+Na versão descrita, os registros operacionais são mantidos localmente no dispositivo Android. O usuário é responsável por proteger o aparelho, controlar o acesso ao dispositivo e manter o sistema atualizado. O bloqueio opcional do Prumo utiliza biometria ou credencial do próprio Android e não substitui as medidas de segurança do sistema.
 
 O aplicativo não oferece sincronização remota dos registros financeiros nesta versão. A perda, dano, redefinição ou substituição do dispositivo pode resultar na perda de dados que não tenham sido exportados.
 
 ## 5. Backup e restauração
 
-O aplicativo oferece exportação e restauração manual de backup em JSON.
+O aplicativo oferece exportação e restauração manual de backup em JSON protegido por senha (PBKDF2 e AES-256-GCM). Backups legados sem criptografia podem ser importados para migração.
 
 O usuário é responsável por:
 - criar backups em intervalos adequados;
 - armazenar os arquivos em local seguro;
 - verificar a origem e a integridade dos arquivos;
-- manter cópias antes de executar uma restauração.
+- manter cópias antes de executar uma restauração; e
+- guardar a senha do backup separadamente do arquivo, pois ela não é armazenada pelo aplicativo.
 
 A restauração substitui os registros locais abrangidos pelo arquivo importado. Essa operação pode sobrescrever dados atuais e deve ser realizada somente após a conferência do arquivo.
 

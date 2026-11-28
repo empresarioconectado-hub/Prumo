@@ -4,30 +4,30 @@
 
 O Prumo oferece exportação e restauração manual de dados em JSON para que o usuário possa guardar uma cópia dos registros e transferi-los entre instalações.
 
-O backup não é automático. A responsabilidade por exportar, armazenar e proteger os arquivos é do usuário.
+O backup não é automático. A responsabilidade por exportar, armazenar e proteger os arquivos é do usuário. A criptografia, descriptografia e leitura/gravação dos arquivos são executadas fora da thread principal para manter a interface responsiva.
 
 ## Conteúdo do arquivo
 
-O arquivo JSON contém:
-- identificador de formato: `prumo-backup`;
-- versão do esquema: `1`;
-- data/hora de exportação em milissegundos;
-- configurações do negócio;
-- lançamentos de caixa;
-- produtos;
-- movimentações de estoque;
-- vendas;
-- vendedores;
-- despesas fixas.
+O conteúdo financeiro interno mantém o formato `prumo-backup`, versão de esquema `1`, com configurações, lançamentos, produtos, movimentações, vendas, vendedores e despesas fixas. Valores monetários são serializados em centavos inteiros.
 
-Os valores monetários são serializados em centavos inteiros.
+Na exportação, esse conteúdo é protegido por um envelope `prumo-encrypted-backup`:
+- derivação de chave com PBKDF2 e 250.000 iterações;
+- PBKDF2-HMAC-SHA256 com senha codificada em UTF-8 em todas as versões Android suportadas;
+- derivação implementada sobre a primitiva HMAC-SHA256 do sistema, mantendo compatibilidade entre Android 7 e versões atuais;
+- leitura de envelopes legados com os identificadores PBKDF2 anteriores para compatibilidade.
+- criptografia autenticada AES-256-GCM;
+- salt aleatório de 16 bytes e IV aleatório de 12 bytes;
+- senha definida pelo usuário com pelo menos 12 caracteres.
+
+A senha não é salva no dispositivo nem incluída no arquivo. Sem ela, o backup criptografado não pode ser restaurado. As preferências de bloqueio biométrico/credencial e de aparência (sistema, claro ou escuro) são locais ao dispositivo e não são transferidas no backup.
 
 ## Exportar
 
 1. Abra as configurações do Prumo.
 2. Selecione a opção de exportação de backup.
-3. Escolha o destino e confirme o salvamento do arquivo JSON.
-4. Verifique se o arquivo foi salvo no local escolhido.
+3. Defina e confirme uma senha com pelo menos 12 caracteres.
+4. Escolha o destino e confirme o salvamento do arquivo JSON criptografado.
+5. Guarde a senha separadamente do arquivo e verifique se o arquivo foi salvo.
 
 O nome sugerido pelo aplicativo inclui a identificação Prumo e um timestamp.
 
@@ -39,13 +39,13 @@ O nome sugerido pelo aplicativo inclui a identificação Prumo e um timestamp.
 4. Escolha o arquivo.
 5. Confirme a operação somente após verificar que o arquivo corresponde ao negócio e à cópia desejados.
 
-A restauração verifica o identificador do formato, a versão do esquema e a estrutura dos dados antes de substituir os registros locais.
+A restauração verifica o identificador do formato, a versão do esquema, o limite de tamanho (10 milhões de caracteres para o conteúdo interno e 15 milhões para o envelope criptografado), campos obrigatórios, faixas numéricas, percentuais, identificadores duplicados e referências de vendas e lançamentos antes de substituir as tabelas Room. O histórico de movimentações mantém referências históricas mesmo quando um produto não está mais cadastrado.
 
 **Atenção:** a restauração substitui os registros operacionais existentes. Faça uma exportação do estado atual antes de importar outro backup.
 
 ## Compatibilidade
 
-A implementação atual aceita o formato `prumo-backup` com `schemaVersion = 1`. Arquivos de outros formatos ou versões não são compatíveis com o restaurador atual.
+A implementação atual aceita o envelope criptografado `prumo-encrypted-backup` versão 1, que contém o formato interno `prumo-backup` com `schemaVersion = 1`. Backups legados em JSON sem criptografia, no formato interno versão 1, continuam aceitos para facilitar migração. Arquivos de outros formatos ou versões não são compatíveis.
 
 Ao modificar o modelo de dados:
 - avalie o impacto no formato JSON;
@@ -67,3 +67,10 @@ O aplicativo não controla a segurança do serviço ou dispositivo em que o usu�
 ## Limitações
 
 O backup é manual e depende de ação do usuário. Não há garantia de recuperação se o usuário perder o arquivo, se o arquivo estiver corrompido ou se a versão do formato deixar de ser suportada.
+
+
+## Integridade e limitações atuais
+
+A exportação lê um snapshot transacional do Room. A substituição das tabelas Room ocorre em uma transação; as preferências do negócio são gravadas posteriormente no DataStore, que é um armazenamento independente. Se uma das etapas falhar, o aplicativo tenta restaurar o snapshot e as preferências anteriores. Ainda não existe atomicidade distribuída e um encerramento abrupto do processo entre as duas gravações não pode ser compensado. Esse cenário precisa de teste específico e permanece como bloqueio para declarar recuperação plenamente resiliente.
+
+A criptografia autenticada protege confidencialidade e integridade do conteúdo cifrado. O formato atual utiliza PBKDF2-HMAC-SHA256 independentemente da versão do Android, permitindo restaurar backups entre dispositivos compatíveis. A validação estrutural continua sendo executada após a descriptografia. Não restaure arquivos recebidos de origem desconhecida. Backups legados sem criptografia permanecem legíveis por compatibilidade e devem ser reexportados no formato protegido.

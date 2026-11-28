@@ -9,10 +9,23 @@ Este documento descreve os controles observáveis na implementação atual e as 
 - Registros operacionais são armazenados em banco local Room.
 - Preferências são armazenadas pelo Preferences DataStore.
 - O manifesto Android define `android:allowBackup="false"`.
-- O aplicativo disponibiliza exportação manual de backup JSON.
+- O aplicativo disponibiliza exportação manual de backup JSON protegido por senha.
+- A proteção usa PBKDF2-HMAC-SHA256 (250.000 iterações, senha em UTF-8) para derivação da chave e AES-256-GCM para confidencialidade e autenticação do conteúdo. O mesmo KDF é usado em todas as versões Android suportadas para permitir portabilidade do backup.
+- O arquivo utiliza salt e IV aleatórios; a senha não é persistida pelo aplicativo.
+- Backups antigos sem criptografia são aceitos para migração, mas devem ser reexportados no formato protegido.
+- O manifesto desativa o tráfego HTTP em texto claro por meio de `usesCleartextTraffic=false`.
+- A permissão de notificações foi removida porque o fluxo atual não utiliza notificações agendadas.
+- O restaurador valida estrutura, faixas de valores, IDs duplicados e referências antes de substituir os dados Room.
+- Movimentações manuais de estoque são persistidas junto ao saldo em uma transação Room.
 - O modo de privacidade oculta valores em telas compatíveis, sem criptografar os dados.
+- O desbloqueio biométrico utiliza AndroidX BiometricPrompt associado a uma operação criptográfica com chave do Android Keystore e exige biometria forte compatível.
+- Quando a biometria não está disponível, o usuário pode optar pela confirmação de credencial do Android por meio do fluxo de segurança do sistema.
+- A ativação exige que o Android tenha PIN, padrão ou senha de bloqueio configurado.
+- Com o bloqueio ativo, FLAG_SECURE impede capturas de tela e prévias do app na tela de recentes.
+- A chave criptográfica é invalidada após alterações de biometria e recriada quando necessário; o bloqueio é reaplicado ao retornar ao primeiro plano.
+- Valide biometria forte, ausência de biometria, bloqueio temporário e fallback de PIN/senha em aparelhos reais.
 
-O acesso ao dispositivo desbloqueado ou a arquivos exportados pode expor informações do negócio. Recomenda-se manter bloqueio de tela, atualizações de segurança e controle de acesso ao aparelho.
+O acesso ao dispositivo desbloqueado ou a backups legados sem criptografia pode expor informações do negócio. Recomenda-se manter bloqueio de tela, atualizações de segurança e controle de acesso ao aparelho.
 
 ## Transporte e serviços remotos
 
@@ -60,4 +73,4 @@ Consulte [SECURITY.md](../SECURITY.md) para o procedimento de comunicação de v
 
 ## Limitações conhecidas
 
-A versão atual não oferece bloqueio biométrico/PIN nem criptografia própria do arquivo de backup. O modo de privacidade é apenas visual. O uso de mecanismos de segurança do Android não elimina riscos de dispositivo comprometido, compartilhamento indevido ou engenharia social.
+O bloqueio biométrico/credencial foi implementado, mas ainda exige validação em dispositivos reais. Room e DataStore não participam de uma transação comum; a restauração tenta compensar falhas entre as gravações, mas um encerramento abrupto do processo nesse intervalo ainda pode deixar preferências e dados em estados diferentes. O modo de privacidade é apenas visual. O uso de mecanismos de segurança do Android não elimina riscos de dispositivo comprometido, compartilhamento indevido ou engenharia social.

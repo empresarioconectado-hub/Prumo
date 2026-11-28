@@ -82,3 +82,22 @@ Antes de solicitar revisão:
 3. confira o resultado do GitHub Actions;
 4. teste manualmente os fluxos afetados em um dispositivo ou emulador;
 5. atualize a documentação correspondente.
+
+
+## Pipeline atual
+
+O workflow `.github/workflows/build-apk.yml` executa:
+1. testes unitários do variant debug;
+2. Android Lint;
+3. geração do APK debug;
+4. publicação do APK e do relatório de lint como artefatos temporários;
+5. testes instrumentados em emulador Android.
+
+A aprovação do pipeline comprova somente os cenários automatizados executados. Não substitui testes exploratórios, testes em aparelhos físicos, revisão de segurança ou validação de release assinado.
+
+
+## Segurança da cadeia de dependências
+
+- Dependabot verifica semanalmente atualizações de Gradle e GitHub Actions.
+- CodeQL analisa o código Kotlin/Java em Pull Requests, na branch principal e em agenda semanal.
+- A revisão de dependências removeu aliases e integrações Firebase que não eram utilizadas pelo aplicativo Android.

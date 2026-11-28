@@ -12,6 +12,7 @@ import com.example.model.StockMovementType
 import com.example.model.StockMovement
 import java.util.Calendar
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 class PrumoRepository(
     private val dao: PrumoDao,
@@ -27,9 +28,18 @@ class PrumoRepository(
 
     private val backupManager = PrumoBackupManager(dao, settingsStore)
 
-    suspend fun exportBackupJson(): String = backupManager.exportJson()
+    suspend fun exportBackupJson(password: String): String = backupManager.exportEncryptedJson(password)
 
-    suspend fun restoreBackupJson(json: String) = backupManager.restoreJson(json)
+    suspend fun restoreBackupJson(json: String, password: String) = backupManager.restoreBackup(json, password)
+
+    suspend fun setAppLockEnabled(enabled: Boolean) {
+        settingsStore.setAppLockEnabled(enabled)
+    }
+
+    suspend fun setThemeMode(mode: String) {
+        require(mode in setOf("SYSTEM", "LIGHT", "DARK")) { "Modo de aparência inválido." }
+        settingsStore.setThemeMode(mode)
+    }
 
     suspend fun updateSettings(
         businessName: String,
@@ -37,12 +47,17 @@ class PrumoRepository(
         minCashAlertCents: Long,
         taxRatePercent: Double
     ) {
+        PrumoValidation.settings(BusinessSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent))
         settingsStore.updateSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent)
     }
 
     suspend fun saveCashEntry(entry: CashEntry): Boolean {
         if (entry.saleId != null) return false
-        if (entry.id == 0L) dao.insertCashEntry(entry) else dao.updateCashEntry(entry)
+        PrumoValidation.cashEntry(entry)
+        if (entry.id == 0L) dao.insertCashEntry(entry) else {
+            require(dao.cashEntryById(entry.id) != null) { "Lançamento não encontrado para edição." }
+            dao.updateCashEntry(entry)
+        }
         return true
     }
 
@@ -58,6 +73,8 @@ class PrumoRepository(
     }
 
     suspend fun saveStockItem(item: StockItem) {
+        PrumoValidation.stockItem(item)
+        require(dao.countStockItemsWithSku(item.sku.trim(), item.id) == 0) { "Já existe um produto cadastrado com este SKU." }
         if (item.id == 0L) {
             val openingMovement = if (item.quantity > 0L) StockMovement(
                 stockItemId = 0L, sku = item.sku, productName = item.name,
@@ -68,7 +85,9 @@ class PrumoRepository(
             dao.insertStockItemWithOpeningMovement(item, openingMovement)
         } else {
             val current = dao.stockItemById(item.id)
-            val movement = if (current != null && current.quantity != item.quantity) StockMovement(
+                ?: error("Produto não encontrado para edição.")
+            PrumoValidation.stockItem(current)
+            val movement = if (current.quantity != item.quantity) StockMovement(
                 stockItemId = item.id, sku = item.sku, productName = item.name,
                 movementType = StockMovementType.ADJUSTMENT.name,
                 quantity = kotlin.math.abs(item.quantity - current.quantity),
@@ -79,33 +98,8 @@ class PrumoRepository(
         }
     }
     suspend fun applyStockMovement(item: StockItem, movementType: StockMovementType, units: Long): Boolean {
-        if (units <= 0L) return false
-        val current = dao.stockItemById(item.id) ?: return false
-        val updated = when (movementType) {
-            StockMovementType.PURCHASE -> current.copy(quantity = current.quantity + units)
-            StockMovementType.SALE -> {
-                if (current.quantity < units) return false
-                current.copy(quantity = current.quantity - units, soldUnitsCount = current.soldUnitsCount + units)
-            }
-            StockMovementType.LOSS -> {
-                if (current.quantity < units) return false
-                current.copy(quantity = current.quantity - units, lossUnitsCount = current.lossUnitsCount + units)
-            }
-            StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
-        }
-        dao.updateStockItemWithMovement(updated, StockMovement(
-            stockItemId = current.id, sku = current.sku, productName = current.name,
-            movementType = movementType.name, quantity = units,
-            unitCostCents = current.unitCostCents,
-            referenceNote = when (movementType) {
-                StockMovementType.PURCHASE -> "Compra / reposição"
-                StockMovementType.SALE -> "Saída manual de estoque"
-                StockMovementType.LOSS -> "Perda / avaria"
-                StockMovementType.ADJUSTMENT -> "Ajuste manual de saldo"
-            },
-            dateMillis = System.currentTimeMillis()
-        ))
-        return true
+        if (units < 0L || (movementType != StockMovementType.ADJUSTMENT && units == 0L)) return false
+        return dao.applyStockMovementAtomic(item.id, movementType, units)
     }
 
     suspend fun deleteStockItem(id: Long): Boolean {
@@ -115,6 +109,7 @@ class PrumoRepository(
     }
 
     suspend fun saveSale(sale: SaleRecord) {
+        PrumoValidation.sale(sale)
         dao.saveSaleAtomic(sale)
     }
 
@@ -123,9 +118,11 @@ class PrumoRepository(
     }
 
     suspend fun saveSeller(seller: SellerProfile) {
+        PrumoValidation.seller(seller)
         if (seller.id == 0L) {
             dao.insertSeller(seller)
         } else {
+            require(dao.sellerById(seller.id) != null) { "Vendedor não encontrado para edição." }
             dao.updateSeller(seller)
         }
     }
@@ -135,9 +132,11 @@ class PrumoRepository(
     }
 
     suspend fun saveFixedExpense(expense: FixedExpense) {
+        PrumoValidation.fixedExpense(expense)
         if (expense.id == 0L) {
             dao.insertFixedExpense(expense)
         } else {
+            require(dao.fixedExpenseById(expense.id) != null) { "Despesa fixa não encontrada para edição." }
             dao.updateFixedExpense(expense)
         }
     }
@@ -147,13 +146,7 @@ class PrumoRepository(
     }
 
     suspend fun clearAllData() {
-        dao.clearCashEntries()
-        dao.clearStockItems()
-        dao.clearStockMovements()
-        dao.clearSales()
-        dao.clearSellers()
-        dao.clearFixedExpenses()
-        settingsStore.resetDefaults()
+        backupManager.clearAllDataSafely()
     }
 
     suspend fun loadSampleData() {
