@@ -1,7 +1,9 @@
 package com.example.data
 
 import com.example.model.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -18,10 +20,11 @@ class PrumoBackupManager(
         const val MAX_ENCRYPTED_BACKUP_CHARACTERS = 15_000_000
     }
 
-    suspend fun exportEncryptedJson(password: String): String =
+    suspend fun exportEncryptedJson(password: String): String = withContext(Dispatchers.IO) {
         PrumoBackupCrypto.encrypt(exportJson(), password)
+    }
 
-    suspend fun restoreBackup(json: String, password: String) {
+    suspend fun restoreBackup(json: String, password: String) = withContext(Dispatchers.IO) {
         require(json.length <= MAX_ENCRYPTED_BACKUP_CHARACTERS) { "O arquivo de backup excede o tamanho permitido." }
         val format = JSONObject(json).optString("format")
         if (format == "prumo-encrypted-backup") {
