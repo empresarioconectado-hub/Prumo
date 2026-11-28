@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.map
 private val Context.prumoDataStore: DataStore<Preferences> by preferencesDataStore(name = "prumo_settings")
 
 class SettingsDataStore(private val context: Context) {
+    internal val applicationContext: Context = context.applicationContext
 
     private object Keys {
         val BUSINESS_NAME = stringPreferencesKey("business_name")
