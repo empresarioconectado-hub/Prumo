@@ -23,6 +23,7 @@ class SettingsDataStore(private val context: Context) {
         val MIN_CASH_ALERT_CENTS = longPreferencesKey("min_cash_alert_cents")
         val TAX_RATE_PERCENT = doublePreferencesKey("tax_rate_percent")
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
     }
 
     val settingsFlow: Flow<BusinessSettings> = context.prumoDataStore.data.map { prefs ->
@@ -31,7 +32,8 @@ class SettingsDataStore(private val context: Context) {
             initialBalanceCents = prefs[Keys.INITIAL_BALANCE_CENTS] ?: 0L,
             minCashAlertCents = prefs[Keys.MIN_CASH_ALERT_CENTS] ?: 500_000L,
             taxRatePercent = prefs[Keys.TAX_RATE_PERCENT] ?: 6.0,
-            appLockEnabled = prefs[Keys.APP_LOCK_ENABLED] ?: false
+            appLockEnabled = prefs[Keys.APP_LOCK_ENABLED] ?: false,
+            themeMode = prefs[Keys.THEME_MODE] ?: "SYSTEM"
         )
     }
 
@@ -53,12 +55,18 @@ class SettingsDataStore(private val context: Context) {
         context.prumoDataStore.edit { prefs -> prefs[Keys.APP_LOCK_ENABLED] = enabled }
     }
 
+    suspend fun setThemeMode(mode: String) {
+        require(mode in setOf("SYSTEM", "LIGHT", "DARK")) { "Modo de aparência inválido." }
+        context.prumoDataStore.edit { prefs -> prefs[Keys.THEME_MODE] = mode }
+    }
+
     suspend fun resetDefaults() {
         context.prumoDataStore.edit { prefs ->
             prefs[Keys.BUSINESS_NAME] = "Minha Empresa"
             prefs[Keys.INITIAL_BALANCE_CENTS] = 0L
             prefs[Keys.MIN_CASH_ALERT_CENTS] = 500_000L
             prefs[Keys.TAX_RATE_PERCENT] = 6.0
+            prefs[Keys.THEME_MODE] = "SYSTEM"
         }
     }
 }
