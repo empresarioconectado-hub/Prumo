@@ -1,6 +1,8 @@
 package com.example.data
 
+import android.util.AtomicFile
 import com.example.model.*
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -15,9 +17,10 @@ class PrumoBackupManager(
     private val dao: PrumoDao,
     private val settingsStore: SettingsDataStore
 ) {
-    private companion object {
-        const val MAX_BACKUP_CHARACTERS = 10_000_000
-        const val MAX_ENCRYPTED_BACKUP_CHARACTERS = 15_000_000
+    companion object {
+        internal const val ROLLBACK_FILE_NAME = "prumo_restore_rollback.json"
+        private const val MAX_BACKUP_CHARACTERS = 10_000_000
+        private const val MAX_ENCRYPTED_BACKUP_CHARACTERS = 15_000_000
     }
 
     suspend fun exportEncryptedJson(password: String): String = withContext(Dispatchers.IO) {
@@ -38,6 +41,10 @@ class PrumoBackupManager(
     suspend fun exportJson(): String {
         val settings = settingsStore.settingsFlow.first()
         val snapshot = dao.readAllDataSnapshot()
+        return serializeBackup(settings, snapshot)
+    }
+
+    private fun serializeBackup(settings: BusinessSettings, snapshot: PrumoDataSnapshot): String {
         val root = JSONObject()
             .put("format", "prumo-backup")
             .put("schemaVersion", 1)
@@ -56,7 +63,35 @@ class PrumoBackupManager(
         return root.toString(2)
     }
 
-    suspend fun restoreJson(json: String) {
+    suspend fun restoreJson(json: String) = withContext(Dispatchers.IO) {
+        restoreJsonInternal(json, writeRollbackJournal = true)
+    }
+
+    /**
+     * Runs before the financial UI is shown. If the process died during a restore,
+     * the previous Room snapshot and device preferences are restored from app-private storage.
+     */
+    suspend fun recoverPendingRestore() = withContext(Dispatchers.IO) {
+        recoverPendingRestoreInternal()
+    }
+
+    private suspend fun recoverPendingRestoreInternal() {
+        if (!hasRollbackJournal()) return
+
+        val root = JSONObject(readRollbackJournal())
+        val settingsJson = root.getJSONObject("settings")
+        val previousAppLockEnabled = settingsJson.optBoolean("rollbackAppLockEnabled", false)
+        val previousThemeMode = settingsJson.optString("rollbackThemeMode", "SYSTEM")
+        settingsJson.remove("rollbackAppLockEnabled")
+        settingsJson.remove("rollbackThemeMode")
+
+        restoreJsonInternal(root.toString(), writeRollbackJournal = false)
+        settingsStore.setAppLockEnabled(previousAppLockEnabled)
+        settingsStore.setThemeMode(previousThemeMode)
+        deleteRollbackJournal()
+    }
+
+    private suspend fun restoreJsonInternal(json: String, writeRollbackJournal: Boolean) {
         require(json.length <= MAX_BACKUP_CHARACTERS) { "O arquivo de backup excede o tamanho permitido." }
         val root = JSONObject(json)
         require(root.getString("format") == "prumo-backup") { "Arquivo não é um backup Prumo." }
@@ -130,24 +165,38 @@ class PrumoBackupManager(
         require(cash.all { it.saleId == null || it.saleId in saleIds }) {
             "Backup contém lançamentos vinculados a vendas inexistentes."
         }
+
         val previousSettings = settingsStore.settingsFlow.first()
         val previousData = dao.readAllDataSnapshot()
+        if (writeRollbackJournal) {
+            val journal = JSONObject(serializeBackup(previousSettings, previousData))
+            journal.getJSONObject("settings")
+                .put("rollbackAppLockEnabled", previousSettings.appLockEnabled)
+                .put("rollbackThemeMode", previousSettings.themeMode)
+            writeRollbackJournal(journal.toString(2))
+        }
+
         try {
             dao.replaceAllData(cash, stock, sales, sellers, expenses, movements)
             settingsStore.updateSettings(
                 settings.businessName, settings.initialBalanceCents,
                 settings.minCashAlertCents, settings.taxRatePercent
             )
+            if (writeRollbackJournal) deleteRollbackJournal()
         } catch (restoreError: Exception) {
             try {
-                dao.replaceAllData(
-                    previousData.cashEntries, previousData.stockItems, previousData.sales,
-                    previousData.sellers, previousData.fixedExpenses, previousData.stockMovements
-                )
-                settingsStore.updateSettings(
-                    previousSettings.businessName, previousSettings.initialBalanceCents,
-                    previousSettings.minCashAlertCents, previousSettings.taxRatePercent
-                )
+                if (writeRollbackJournal) {
+                    recoverPendingRestoreInternal()
+                } else {
+                    dao.replaceAllData(
+                        previousData.cashEntries, previousData.stockItems, previousData.sales,
+                        previousData.sellers, previousData.fixedExpenses, previousData.stockMovements
+                    )
+                    settingsStore.updateSettings(
+                        previousSettings.businessName, previousSettings.initialBalanceCents,
+                        previousSettings.minCashAlertCents, previousSettings.taxRatePercent
+                    )
+                }
             } catch (rollbackError: Exception) {
                 restoreError.addSuppressed(rollbackError)
             }
@@ -156,6 +205,34 @@ class PrumoBackupManager(
                 restoreError
             )
         }
+    }
+
+    private val rollbackFile: AtomicFile by lazy {
+        AtomicFile(File(settingsStore.applicationContext.noBackupFilesDir, ROLLBACK_FILE_NAME))
+    }
+
+    private fun hasRollbackJournal(): Boolean {
+        val baseFile = rollbackFile.baseFile
+        return baseFile.exists() || File(baseFile.path + ".bak").exists()
+    }
+
+    private fun readRollbackJournal(): String =
+        rollbackFile.openRead().bufferedReader(Charsets.UTF_8).use { it.readText() }
+
+    private fun writeRollbackJournal(content: String) {
+        val output = rollbackFile.startWrite()
+        try {
+            output.write(content.toByteArray(Charsets.UTF_8))
+            rollbackFile.finishWrite(output)
+        } catch (error: Exception) {
+            rollbackFile.failWrite(output)
+            throw error
+        }
+    }
+
+    private fun deleteRollbackJournal() {
+        rollbackFile.delete()
+        check(!hasRollbackJournal()) { "Não foi possível finalizar o registro de recuperação." }
     }
 
     private fun CashEntry.toJson() = JSONObject()
