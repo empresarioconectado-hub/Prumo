@@ -43,7 +43,8 @@ Este documento é o gate de release. Marque cada item somente após existir evid
 - [ ] Bloqueio de acesso e exposição em multitarefa avaliados.
 - [ ] Política para logs e dados pessoais revisada.
 - [ ] Backup criptografado ou risco formalmente aceito antes da distribuição.
-- [ ] Bloqueio biométrico/PIN implementado ou decisão de produto documentada.
+- [ ] Bloqueio biométrico/credencial testado em aparelho com biometria e em aparelho apenas com PIN/padrão/senha.
+- [ ] Bloqueio automático ao ir para segundo plano e FLAG_SECURE verificados em dispositivos reais.
 - [ ] Política de Privacidade revisada por responsável competente.
 - [ ] Termos de Uso revisados.
 - [ ] Canal de contato válido publicado.

@@ -28,6 +28,8 @@ A interface deve priorizar leitura rápida, hierarquia de informação e consist
 - Preservar os dados digitados quando uma operação falhar.
 - Não assumir que todas as contas ou categorias pré-configuradas representam a realidade de cada negócio.
 - Exibir estados de carregamento, sucesso, erro e ausência de dados.
+- Ao ativar o bloqueio, exigir credencial segura do Android e impedir capturas/visualização do conteúdo em recentes.
+- Ao retornar do segundo plano, solicitar novamente autenticação antes de exibir dados.
 
 ## Acessibilidade
 
