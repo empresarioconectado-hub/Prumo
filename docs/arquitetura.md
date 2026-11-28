@@ -40,7 +40,7 @@ O diagrama representa o fluxo principal da aplicação. Não implica a existênc
 
 Localização: `app/src/main/java/com/example/ui/`
 
-A interface é construída com Jetpack Compose e Material 3. As telas consomem estado do ViewModel e encaminham ações do usuário para operações de aplicação.
+A interface é construída com Jetpack Compose e Material 3. As telas consomem estado do ViewModel e encaminham ações do usuário para operações de aplicação. O fluxo de venda rápida está em `components/QuickSaleDialog.kt`; o comprovante é formatado por `util/SaleReceiptFormatter.kt`.
 
 Principais áreas:
 - `screens/OverviewScreen.kt`: visão geral.
@@ -96,6 +96,16 @@ A camada de exportação produz:
 4. O repositório aplica as regras e chama o DAO ou DataStore.
 5. O Room/DataStore persiste a alteração e os fluxos atualizam as telas.
 
+## Fluxo de confirmação e compartilhamento da venda
+
+1. A interface envia os dados da venda rápida ao ViewModel.
+2. O ViewModel solicita ao repositório a gravação.
+3. O DAO persiste a venda e suas alterações relacionadas na transação Room e retorna o identificador gerado pelo banco.
+4. O repositório devolve o registro com o ID persistido.
+5. Somente após o sucesso, o ViewModel emite o evento `saleSavedEvents`.
+6. A interface apresenta o comprovante formatado por `saleReceiptText` e oferece compartilhamento por `Intent.ACTION_SEND` com o Android Sharesheet.
+
+A abertura do comprovante não é antecipada à persistência. O ID exibido é o identificador retornado pelo Room, e não um número provisório criado na interface. O envio para WhatsApp ou outro destino depende da escolha e confirmação do usuário no aplicativo de destino.
 ## Persistência e transações
 
 Operações que envolvem mais de uma tabela utilizam métodos transacionais do DAO. A movimentação manual de estoque atualiza saldo e histórico na mesma transação, valida quantidade positiva, impede saída acima do saldo e utiliza aritmética com detecção de overflow. A limpeza das tabelas operacionais também é executada em uma transação única. A venda mantém a atualização de caixa, estoque e histórico em uma transação Room.
