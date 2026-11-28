@@ -73,6 +73,13 @@ class PrumoBackupManager(
         val sellers = root.getJSONArray("sellers").toList { it.toSellerProfile() }
         val expenses = root.getJSONArray("fixedExpenses").toList { it.toFixedExpense() }
 
+        PrumoValidation.settings(settings)
+        cash.forEach(PrumoValidation::cashEntry)
+        stock.forEach(PrumoValidation::stockItem)
+        sales.forEach(PrumoValidation::sale)
+        sellers.forEach(PrumoValidation::seller)
+        expenses.forEach(PrumoValidation::fixedExpense)
+
         require(cash.all { it.amountCents >= 0L } && sales.all { it.grossAmountCents >= 0L }) {
             "Backup contém valores financeiros inválidos."
         }
