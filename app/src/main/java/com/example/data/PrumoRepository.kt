@@ -80,32 +80,7 @@ class PrumoRepository(
     }
     suspend fun applyStockMovement(item: StockItem, movementType: StockMovementType, units: Long): Boolean {
         if (units <= 0L) return false
-        val current = dao.stockItemById(item.id) ?: return false
-        val updated = when (movementType) {
-            StockMovementType.PURCHASE -> current.copy(quantity = current.quantity + units)
-            StockMovementType.SALE -> {
-                if (current.quantity < units) return false
-                current.copy(quantity = current.quantity - units, soldUnitsCount = current.soldUnitsCount + units)
-            }
-            StockMovementType.LOSS -> {
-                if (current.quantity < units) return false
-                current.copy(quantity = current.quantity - units, lossUnitsCount = current.lossUnitsCount + units)
-            }
-            StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
-        }
-        dao.updateStockItemWithMovement(updated, StockMovement(
-            stockItemId = current.id, sku = current.sku, productName = current.name,
-            movementType = movementType.name, quantity = units,
-            unitCostCents = current.unitCostCents,
-            referenceNote = when (movementType) {
-                StockMovementType.PURCHASE -> "Compra / reposição"
-                StockMovementType.SALE -> "Saída manual de estoque"
-                StockMovementType.LOSS -> "Perda / avaria"
-                StockMovementType.ADJUSTMENT -> "Ajuste manual de saldo"
-            },
-            dateMillis = System.currentTimeMillis()
-        ))
-        return true
+        return dao.applyStockMovementAtomic(item.id, movementType, units)
     }
 
     suspend fun deleteStockItem(id: Long): Boolean {
@@ -147,12 +122,8 @@ class PrumoRepository(
     }
 
     suspend fun clearAllData() {
-        dao.clearCashEntries()
-        dao.clearStockItems()
-        dao.clearStockMovements()
-        dao.clearSales()
-        dao.clearSellers()
-        dao.clearFixedExpenses()
+        // Room changes are committed together; settings are reset only after the DB transaction succeeds.
+        dao.clearAllDataAtomic()
         settingsStore.resetDefaults()
     }
 

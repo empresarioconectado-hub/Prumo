@@ -13,6 +13,8 @@ class PrumoBackupManager(
     private val dao: PrumoDao,
     private val settingsStore: SettingsDataStore
 ) {
+    private companion object { const val MAX_BACKUP_CHARACTERS = 10_000_000 }
+
     suspend fun exportJson(): String {
         val settings = settingsStore.settingsFlow.first()
         val root = JSONObject()
@@ -34,6 +36,7 @@ class PrumoBackupManager(
     }
 
     suspend fun restoreJson(json: String) {
+        require(json.length <= MAX_BACKUP_CHARACTERS) { "O arquivo de backup excede o tamanho permitido." }
         val root = JSONObject(json)
         require(root.getString("format") == "prumo-backup") { "Arquivo não é um backup Prumo." }
         require(root.getInt("schemaVersion") == 1) { "Versão de backup não suportada." }
@@ -55,8 +58,43 @@ class PrumoBackupManager(
         require(cash.all { it.amountCents >= 0L } && sales.all { it.grossAmountCents >= 0L }) {
             "Backup contém valores financeiros inválidos."
         }
-        require(stock.all { it.quantity >= 0L && it.initialQuantity >= 0L }) {
-            "Backup contém quantidades de estoque inválidas."
+        require(settings.businessName.isNotBlank() && settings.initialBalanceCents >= 0L &&
+            settings.minCashAlertCents >= 0L && settings.taxRatePercent.isFinite() &&
+            settings.taxRatePercent in 0.0..100.0) { "Configurações financeiras inválidas no backup." }
+        require(cash.all { it.id > 0L && it.description.isNotBlank() && it.amountCents >= 0L &&
+            it.dateMillis > 0L && it.type in setOf("INCOME", "EXPENSE") &&
+            it.status in setOf("PAID", "PENDING") }) { "Backup contém lançamentos inválidos." }
+        require(stock.all { it.id > 0L && it.sku.isNotBlank() && it.name.isNotBlank() &&
+            it.quantity >= 0L && it.initialQuantity >= 0L && it.minStock >= 0L &&
+            it.unitCostCents >= 0L && it.unitPriceCents >= 0L && it.avgDailySales.isFinite() &&
+            it.avgDailySales >= 0.0 && it.leadTimeDays >= 0L }) { "Backup contém produtos inválidos." }
+        require(sales.all { it.id > 0L && it.description.isNotBlank() && it.quantity > 0L &&
+            it.grossAmountCents > 0L && it.costAmountCents >= 0L &&
+            it.taxPercent.isFinite() && it.taxPercent in 0.0..100.0 &&
+            it.commissionPercent.isFinite() && it.commissionPercent in 0.0..100.0 &&
+            it.paymentStatus in setOf("PAID", "PENDING") }) { "Backup contém vendas inválidas." }
+        require(expenses.all { it.id > 0L && it.description.isNotBlank() &&
+            it.amountCents >= 0L && it.dateMillis > 0L }) { "Backup contém despesas inválidas." }
+        require(sellers.all { it.id > 0L && it.name.isNotBlank() && it.monthlyGoalCents >= 0L &&
+            it.commissionPercent.isFinite() && it.commissionPercent in 0.0..100.0 }) { "Backup contém vendedores inválidos." }
+        require(movements.all { it.id > 0L && it.stockItemId > 0L && it.quantity > 0L &&
+            it.unitCostCents >= 0L && it.dateMillis > 0L }) { "Backup contém movimentações inválidas." }
+        require(cash.map { it.id }.distinct().size == cash.size &&
+            stock.map { it.id }.distinct().size == stock.size &&
+            sales.map { it.id }.distinct().size == sales.size &&
+            sellers.map { it.id }.distinct().size == sellers.size &&
+            expenses.map { it.id }.distinct().size == expenses.size &&
+            movements.map { it.id }.distinct().size == movements.size) {
+            "Backup contém identificadores duplicados."
+        }
+        val stockIds = stock.map { it.id }.toSet()
+        require(sales.all { it.stockItemId == null || it.stockItemId in stockIds } &&
+            movements.all { it.stockItemId in stockIds }) {
+            "Backup contém referências a produtos inexistentes."
+        }
+        val saleIds = sales.map { it.id }.toSet()
+        require(cash.all { it.saleId == null || it.saleId in saleIds }) {
+            "Backup contém lançamentos vinculados a vendas inexistentes."
         }
         dao.replaceAllData(cash, stock, sales, sellers, expenses, movements)
         settingsStore.updateSettings(

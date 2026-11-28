@@ -86,7 +86,7 @@ interface PrumoDao {
             val item = stockItemById(saved.stockItemId) ?: error("Produto vinculado não encontrado.")
             require(saved.quantity > 0L) { "A quantidade da venda deve ser maior que zero." }
             require(item.quantity >= saved.quantity) { "Estoque insuficiente para ${item.name}. Disponível: ${item.quantity}." }
-            updateStockItem(item.copy(quantity = item.quantity - saved.quantity, soldUnitsCount = item.soldUnitsCount + saved.quantity))
+            updateStockItem(item.copy(quantity = item.quantity - saved.quantity, soldUnitsCount = Math.addExact(item.soldUnitsCount, saved.quantity)))
             insertStockMovement(StockMovement(
                 stockItemId = item.id, sku = item.sku, productName = item.name,
                 movementType = StockMovementType.SALE.name, quantity = saved.quantity,
@@ -127,6 +127,47 @@ interface PrumoDao {
     @Update suspend fun updateFixedExpense(expense: FixedExpense)
     @Query("DELETE FROM fixed_expenses WHERE id = :id") suspend fun deleteFixedExpenseById(id: Long)
     @Query("DELETE FROM fixed_expenses") suspend fun clearFixedExpenses()
+
+    @Transaction
+    suspend fun clearAllDataAtomic() {
+        clearCashEntries()
+        clearStockItems()
+        clearStockMovements()
+        clearSales()
+        clearSellers()
+        clearFixedExpenses()
+    }
+
+    @Transaction
+    suspend fun applyStockMovementAtomic(itemId: Long, movementType: StockMovementType, units: Long): Boolean {
+        require(units > 0L) { "A quantidade deve ser maior que zero." }
+        val current = stockItemById(itemId) ?: return false
+        val updated = when (movementType) {
+            StockMovementType.PURCHASE -> current.copy(quantity = Math.addExact(current.quantity, units))
+            StockMovementType.SALE -> {
+                require(current.quantity >= units) { "Estoque insuficiente para ${current.name}." }
+                current.copy(quantity = current.quantity - units, soldUnitsCount = Math.addExact(current.soldUnitsCount, units))
+            }
+            StockMovementType.LOSS -> {
+                require(current.quantity >= units) { "Estoque insuficiente para registrar a perda de ${current.name}." }
+                current.copy(quantity = current.quantity - units, lossUnitsCount = Math.addExact(current.lossUnitsCount, units))
+            }
+            StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
+        }
+        updateStockItem(updated)
+        insertStockMovement(StockMovement(
+            stockItemId = current.id, sku = current.sku, productName = current.name,
+            movementType = movementType.name, quantity = units, unitCostCents = current.unitCostCents,
+            referenceNote = when (movementType) {
+                StockMovementType.PURCHASE -> "Compra / reposição"
+                StockMovementType.SALE -> "Saída manual de estoque"
+                StockMovementType.LOSS -> "Perda / avaria"
+                StockMovementType.ADJUSTMENT -> "Ajuste manual de saldo"
+            },
+            dateMillis = System.currentTimeMillis()
+        ))
+        return true
+    }
 
     @Transaction
     suspend fun replaceAllData(
