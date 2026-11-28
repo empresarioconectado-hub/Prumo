@@ -275,6 +275,12 @@ fun PrumoApp() {
         }
     }
 
+    LaunchedEffect(securitySettingsLoaded, appLockEnabled, deviceHasSecureLock) {
+        if (securitySettingsLoaded && appLockEnabled && deviceHasSecureLock && !isAppUnlocked) {
+            requestAppUnlock()
+        }
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, appLockEnabled, securitySettingsLoaded, biometricPrompt) {
         val observer = LifecycleEventObserver { _, event ->
