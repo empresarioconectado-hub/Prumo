@@ -112,27 +112,47 @@ fun OverviewScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Comece em segundos",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                        Text(
-                            text = "Seu painel está zerado e pronto para os lançamentos reais da sua empresa, ou carregue dados de exemplo para testar Caixa, Estoque e DRE.",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "Vamos organizar seu negócio?",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Button(
-                                onClick = onLoadSampleData,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .minimumInteractiveComponentSize()
-                                    .testTag("overview_load_sample_button")
-                            ) {
-                                Text("Testar com Dados de Exemplo", fontWeight = FontWeight.Bold)
-                            }
+                    }
+                    Text(
+                        text = "Seu painel ainda está vazio. Comece registrando uma entrada ou sua primeira venda. Você pode incluir os demais dados conforme a rotina do negócio.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = onQuickIncome,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .minimumInteractiveComponentSize()
+                                .testTag("overview_first_income_button")
+                        ) {
+                            Text("Registrar primeira entrada", fontWeight = FontWeight.Bold)
+                        }
+                        OutlinedButton(
+                            onClick = onQuickSale,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .minimumInteractiveComponentSize()
+                                .testTag("overview_first_sale_button")
+                        ) {
+                            Text("Registrar primeira venda")
+                        }
+                        OutlinedButton(
+                            onClick = onLoadSampleData,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .minimumInteractiveComponentSize()
+                                .testTag("overview_load_sample_button")
+                        ) {
+                            Text("Explorar com dados de exemplo")
                         }
                     }
                 }
