@@ -131,11 +131,11 @@ gradle/         # Catálogo de dependências e configuração do wrapper
 
 O sistema utiliza centavos inteiros para representar valores monetários. As operações que relacionam vendas, caixa e estoque são executadas por métodos transacionais do Room. Movimentações manuais de estoque também devem atualizar o saldo e o histórico na mesma transação, com verificação de quantidade e proteção contra overflow aritmético.
 
-O backup valida formato, versão, tamanho, campos, faixas numéricas, identificadores duplicados e referências entre registros antes de substituir as tabelas Room. As preferências são persistidas pelo DataStore, separado do banco Room; por isso, a restauração completa ainda exige testes específicos de falha entre as duas persistências.
+O backup valida formato, versão, tamanho, campos, faixas numéricas, identificadores duplicados e referências entre registros antes de substituir as tabelas Room. Como Room e DataStore são persistências separadas, a restauração e a limpeza completa usam um registro temporário de recuperação atômico no armazenamento privado do aplicativo. O Prumo tenta recuperar o estado anterior em caso de falha e executa essa recuperação antes de exibir os dados financeiros no próximo início. Esse mecanismo é compensatório, não uma transação distribuída.
 
 ## Privacidade e segurança
 
-O manifesto desativa o backup automático do Android e não declara permissão de notificações que não seja utilizada pela versão atual. O modo de ocultação de valores é apenas visual; não equivale a criptografia. O bloqueio opcional usa a biometria ou credencial do dispositivo e protege a visualização do app em capturas e na tela de recentes enquanto ativado.
+O manifesto desativa o backup automático do Android e não declara permissão de notificações que não seja utilizada pela versão atual. O modo de ocultação de valores é apenas visual; não equivale a criptografia. O bloqueio opcional associa a biometria forte compatível a uma operação criptográfica do Android Keystore. A alternativa de PIN, padrão ou senha é confirmada separadamente pelo fluxo de segurança do Android. O bloqueio protege a visualização do app em capturas e na tela de recentes enquanto ativado; não equivale à criptografia do banco Room.
 
 Os novos backups são protegidos por senha com PBKDF2 e AES-256-GCM. A criptografia, leitura e gravação dos arquivos são executadas fora da thread principal. A senha não é armazenada pelo aplicativo; mantenha-a em local seguro. Backups antigos em JSON sem criptografia continuam aceitos para migração. A criptografia protege o arquivo exportado, não o banco local do aplicativo.
 

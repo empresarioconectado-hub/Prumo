@@ -16,16 +16,17 @@ Este documento descreve os controles observáveis na implementação atual e as 
 - O manifesto desativa o tráfego HTTP em texto claro por meio de `usesCleartextTraffic=false`.
 - A permissão de notificações foi removida porque o fluxo atual não utiliza notificações agendadas.
 - O restaurador valida estrutura, faixas de valores, IDs duplicados e referências antes de substituir os dados Room.
+- A restauração e a limpeza completa gravam um snapshot temporário de recuperação com AtomicFile em noBackupFilesDir antes de alterar Room e DataStore; a inicialização recupera esse snapshot antes de exibir os dados financeiros.
 - Movimentações manuais de estoque são persistidas junto ao saldo em uma transação Room.
 - O modo de privacidade oculta valores em telas compatíveis, sem criptografar os dados.
-- O desbloqueio biométrico utiliza AndroidX BiometricPrompt associado a uma operação criptográfica com chave do Android Keystore e exige biometria forte compatível.
+- O desbloqueio biométrico utiliza AndroidX BiometricPrompt associado a uma operação criptográfica AES-GCM com chave do Android Keystore e exige biometria forte compatível.
 - Quando a biometria não está disponível, o usuário pode optar pela confirmação de credencial do Android por meio do fluxo de segurança do sistema.
 - A ativação exige que o Android tenha PIN, padrão ou senha de bloqueio configurado.
 - Com o bloqueio ativo, FLAG_SECURE impede capturas de tela e prévias do app na tela de recentes.
 - A chave criptográfica é invalidada após alterações de biometria e recriada quando necessário; o bloqueio é reaplicado ao retornar ao primeiro plano.
 - Valide biometria forte, ausência de biometria, bloqueio temporário e fallback de PIN/senha em aparelhos reais.
 
-O acesso ao dispositivo desbloqueado ou a backups legados sem criptografia pode expor informações do negócio. Recomenda-se manter bloqueio de tela, atualizações de segurança e controle de acesso ao aparelho.
+O banco Room não possui criptografia adicional no nível da aplicação; os arquivos permanecem protegidos pelo sandbox e pelos mecanismos de criptografia do Android no dispositivo. O registro temporário de recuperação também fica no armazenamento privado do aplicativo e não é criptografado separadamente. Ele é removido após a conclusão da operação. O acesso ao dispositivo desbloqueado ou a backups legados sem criptografia pode expor informações do negócio. Recomenda-se manter bloqueio de tela, atualizações de segurança e controle de acesso ao aparelho.
 
 ## Transporte e serviços remotos
 
@@ -73,4 +74,4 @@ Consulte [SECURITY.md](../SECURITY.md) para o procedimento de comunicação de v
 
 ## Limitações conhecidas
 
-O bloqueio biométrico/credencial foi implementado, mas ainda exige validação em dispositivos reais. Room e DataStore não participam de uma transação comum; a restauração tenta compensar falhas entre as gravações, mas um encerramento abrupto do processo nesse intervalo ainda pode deixar preferências e dados em estados diferentes. O modo de privacidade é apenas visual. O uso de mecanismos de segurança do Android não elimina riscos de dispositivo comprometido, compartilhamento indevido ou engenharia social.
+O bloqueio biométrico/credencial foi implementado, mas ainda exige validação em dispositivos reais. Room e DataStore não participam de uma transação comum; a aplicação utiliza um registro persistente de recuperação para restaurar o snapshot anterior se o processo for encerrado durante restauração ou limpeza. Se o registro estiver corrompido ou não puder ser lido, a interface financeira permanece bloqueada até nova tentativa. O modo de privacidade é apenas visual. O uso de mecanismos de segurança do Android não elimina riscos de dispositivo comprometido, compartilhamento indevido ou engenharia social.

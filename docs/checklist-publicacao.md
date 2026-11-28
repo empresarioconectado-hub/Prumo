@@ -33,7 +33,9 @@ Este documento é o gate de release. Marque cada item somente após existir evid
 - [ ] Senha incorreta rejeitada e perda de senha comunicada ao usuário.
 - [ ] Backup legado sem criptografia importado e reexportado no novo formato.
 - [ ] Backup inválido, truncado, grande e com referências inconsistentes rejeitado.
-- [ ] Falha durante restauração não deixa estado parcial.
+- [ ] Teste instrumentado de recuperação a partir de registro persistente passa.
+- [ ] Encerramento forçado durante restauração e limpeza é testado em dispositivo real.
+- [ ] Registro de recuperação corrompido mantém a interface financeira bloqueada e permite nova tentativa.
 - [ ] Exportação e restauração preservam todos os campos.
 - [ ] Política de retenção e armazenamento dos backups definida.
 
@@ -89,11 +91,12 @@ Este documento é o gate de release. Marque cada item somente após existir evid
 
 ## Bloqueios conhecidos a resolver antes de publicar
 
-- O Room e o DataStore são persistências separadas; a recuperação em falha entre ambas precisa de estratégia e testes de compensação.
+- Room e DataStore continuam sendo persistências separadas; o registro persistente de recuperação foi implementado para restauração e limpeza completa, com teste instrumentado. Ainda falta validar encerramento forçado, armazenamento cheio e falha de leitura do registro em dispositivos reais.
 - A senha do backup e a experiência de recuperação ainda precisam ser validadas em dispositivos físicos.
 - Não há comprovação de testes em dispositivos físicos nesta revisão.
 - Não há evidência de AAB release assinado por chave de produção.
 - Política de Privacidade e Termos exigem validação do responsável e canal de contato público real.
-- Bloqueio biométrico/credencial e proteção de tela já estão implementados no código, mas ainda precisam de validação em dispositivos reais.
+- Bloqueio biométrico forte com CryptoObject, fallback separado para credencial do Android e proteção de tela estão implementados no código, mas ainda precisam de validação em dispositivos reais.
+- O namespace Kotlin/Android ainda usa com.example; confirmar o Application ID definitivo e avaliar a padronização do namespace antes da primeira publicação.
 
 **Status:** não declarar publicação liberada enquanto qualquer bloqueio obrigatório estiver pendente.

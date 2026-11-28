@@ -22,7 +22,7 @@ O conjunto pode incluir testes JUnit e testes executados com Robolectric para ce
 
 Localização: `app/src/androidTest/`
 
-Esses testes são executados em dispositivo ou emulador Android configurado:
+Esses testes são executados em dispositivo ou emulador Android configurado. A suíte instrumentada inclui testes de transações Room, regras de venda/estoque, preferências DataStore e recuperação a partir de registro persistente:
 
 ```bash
 ./gradlew connectedAndroidTest
@@ -57,7 +57,7 @@ Uma execução bem-sucedida confirma que:
 - o APK de depuração foi compilado;
 - o artefato esperado foi gerado e carregado.
 
-O workflow atual não comprova:
+O workflow atual inclui testes instrumentados em emulador, mas não comprova:
 - funcionamento em todos os modelos de aparelhos;
 - comportamento em produção;
 - segurança por auditoria independente;
@@ -91,9 +91,9 @@ O workflow `.github/workflows/build-apk.yml` executa:
 2. Android Lint;
 3. geração do APK debug;
 4. publicação do APK e do relatório de lint como artefatos temporários;
-5. testes instrumentados em emulador Android.
+5. testes instrumentados em emulador Android, incluindo PrumoDaoInstrumentedTest, SettingsDataStoreInstrumentedTest e PrumoBackupRecoveryInstrumentedTest.
 
-A aprovação do pipeline comprova somente os cenários automatizados executados. Não substitui testes exploratórios, testes em aparelhos físicos, revisão de segurança ou validação de release assinado.
+A aprovação do pipeline comprova somente os cenários automatizados executados. Não substitui testes exploratórios, testes em aparelhos físicos, revisão de segurança ou validação de release assinado. O emulador do workflow usa uma imagem Android API 30 mais leve, com animações desativadas e repetição para falhas transitórias; a compatibilidade de publicação ainda deve ser validada em versões e aparelhos representativos.
 
 
 ## Segurança da cadeia de dependências

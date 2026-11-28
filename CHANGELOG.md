@@ -47,7 +47,9 @@ Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo 
 - Bloqueio opcional por biometria/credencial Android, com reautenticação no retorno ao app e proteção FLAG_SECURE.
 - Modo de ocultação de valores aplicado também aos indicadores e detalhes financeiros de estoque.
 - Validações de domínio centralizadas para impedir valores inválidos e operações que possam causar overflow.
-- Operações de exclusão em lote e restauração tentam recuperar o estado anterior em caso de falha.
+- Operações de exclusão em lote e restauração usam registro persistente de recuperação com AtomicFile, permitindo restaurar o snapshot anterior após falha ou encerramento do processo.
+- A inicialização verifica o registro de recuperação antes de exibir as telas financeiras; falhas de recuperação mantêm os dados ocultos e permitem nova tentativa.
+- A autenticação biométrica foi vinculada a uma operação criptográfica AES-GCM protegida pelo Android Keystore, com fallback separado para a credencial do sistema.
 - Movimentações de estoque atualizam saldo e histórico dentro de uma transação Room.
 - Adicionada proteção contra overflow em entradas e estornos de estoque.
 - Limpeza de dados operacionais centralizada em transação Room.
@@ -58,6 +60,7 @@ Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo 
 - Corrigida a propagação do estado de ocultação de valores na projeção diária do caixa.
 - Corrigido o saldo inicial exibido no fluxo de caixa para respeitar o período selecionado.
 - CI ampliado com Android Lint, testes instrumentados em emulador e análise CodeQL; Dependabot habilitado para Gradle e GitHub Actions.
+- Adicionados testes instrumentados para persistência DataStore e recuperação de backup interrompido.
 
 ### Documentação
 - README reorganizado com escopo real da versão.
