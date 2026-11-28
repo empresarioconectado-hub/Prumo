@@ -92,7 +92,7 @@ class PrumoRepository(
         }
     }
     suspend fun applyStockMovement(item: StockItem, movementType: StockMovementType, units: Long): Boolean {
-        if (units <= 0L) return false
+        if (units < 0L || (movementType != StockMovementType.ADJUSTMENT && units == 0L)) return false
         return dao.applyStockMovementAtomic(item.id, movementType, units)
     }
 

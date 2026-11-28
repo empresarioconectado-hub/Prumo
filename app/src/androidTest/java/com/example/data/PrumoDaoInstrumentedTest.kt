@@ -71,6 +71,17 @@ class PrumoDaoInstrumentedTest {
     }
 
     @Test
+    fun adjustmentCanSetStockToZeroAndRecordsTheDifference() = runBlocking {
+        val id = createItem(10L)
+
+        val result = dao.applyStockMovementAtomic(id, StockMovementType.ADJUSTMENT, 0L)
+
+        assertEquals(true, result)
+        assertEquals(0L, dao.stockItemById(id)?.quantity)
+        assertEquals(10L, dao.allStockMovements().single().quantity)
+    }
+
+    @Test
     fun clearAllDataAtomicRemovesInventoryAndMovementHistoryTogether() = runBlocking {
         val id = createItem(10L)
         dao.applyStockMovementAtomic(id, StockMovementType.PURCHASE, 2L)

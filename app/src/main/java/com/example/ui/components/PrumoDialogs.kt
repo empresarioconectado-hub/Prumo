@@ -556,7 +556,7 @@ fun StockMovementDialog(
 
                     Text("Tipo de movimentação", style = MaterialTheme.typography.labelMedium)
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StockMovementType.entries.filter { it != StockMovementType.ADJUSTMENT }.forEach { m ->
+                        StockMovementType.entries.forEach { m ->
                             FilterChip(
                                 selected = movementType == m,
                                 onClick = { movementType = m },
@@ -569,7 +569,7 @@ fun StockMovementDialog(
                     OutlinedTextField(
                         value = unitsText,
                         onValueChange = { unitsText = it.filter(Char::isDigit) },
-                        label = { Text("Quantidade (${selectedItem!!.unit})") },
+                        label = { Text(if (movementType == StockMovementType.ADJUSTMENT) "Novo saldo (${selectedItem!!.unit})" else "Quantidade (${selectedItem!!.unit})") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -587,8 +587,11 @@ fun StockMovementDialog(
                     val units = unitsText.toLongOrNull() ?: 0L
                     val item = selectedItem!!
                     when {
-                        units <= 0L -> errorMsg = "Informe uma quantidade maior que zero."
-                        movementType != StockMovementType.PURCHASE && units > item.quantity ->
+                        units <= 0L && movementType != StockMovementType.ADJUSTMENT ->
+                            errorMsg = "Informe uma quantidade maior que zero."
+                        units > PrumoValidation.MAX_STOCK_UNITS ->
+                            errorMsg = "A quantidade excede o limite permitido."
+                        movementType in setOf(StockMovementType.SALE, StockMovementType.LOSS) && units > item.quantity ->
                             errorMsg = "Saldo insuficiente (disponível: ${item.quantity} ${item.unit})."
                         else -> onConfirm(item, movementType, units)
                     }

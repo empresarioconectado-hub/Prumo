@@ -162,7 +162,11 @@ interface PrumoDao {
 
     @Transaction
     suspend fun applyStockMovementAtomic(itemId: Long, movementType: StockMovementType, units: Long): Boolean {
-        require(units > 0L) { "A quantidade deve ser maior que zero." }
+        if (movementType == StockMovementType.ADJUSTMENT) {
+            require(units in 0L..PrumoValidation.MAX_STOCK_UNITS) { "O novo saldo está fora do limite permitido." }
+        } else {
+            require(units in 1L..PrumoValidation.MAX_STOCK_UNITS) { "A quantidade deve ser maior que zero." }
+        }
         val current = stockItemById(itemId) ?: return false
         val updated = when (movementType) {
             StockMovementType.PURCHASE -> current.copy(quantity = Math.addExact(current.quantity, units))
@@ -176,15 +180,19 @@ interface PrumoDao {
             }
             StockMovementType.ADJUSTMENT -> current.copy(quantity = units)
         }
+        val movementUnits = if (movementType == StockMovementType.ADJUSTMENT) {
+            kotlin.math.abs(units - current.quantity)
+        } else units
+        if (movementUnits == 0L) return true
         updateStockItem(updated)
         insertStockMovement(StockMovement(
             stockItemId = current.id, sku = current.sku, productName = current.name,
-            movementType = movementType.name, quantity = units, unitCostCents = current.unitCostCents,
+            movementType = movementType.name, quantity = movementUnits, unitCostCents = current.unitCostCents,
             referenceNote = when (movementType) {
                 StockMovementType.PURCHASE -> "Compra / reposição"
                 StockMovementType.SALE -> "Saída manual de estoque"
                 StockMovementType.LOSS -> "Perda / avaria"
-                StockMovementType.ADJUSTMENT -> "Ajuste manual de saldo"
+                StockMovementType.ADJUSTMENT -> "Ajuste manual de saldo: ${current.quantity} → ${units}"
             },
             dateMillis = System.currentTimeMillis()
         ))
