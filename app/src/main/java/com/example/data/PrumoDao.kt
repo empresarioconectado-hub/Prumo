@@ -11,6 +11,21 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PrumoDao {
+    /**
+     * Counts operational records before inserting demo data.
+     * Demo data must never be used as a shortcut to clear an existing business database.
+     */
+    @Query("""
+        SELECT
+            (SELECT COUNT(*) FROM cash_entries) +
+            (SELECT COUNT(*) FROM stock_items) +
+            (SELECT COUNT(*) FROM stock_movements) +
+            (SELECT COUNT(*) FROM sale_records) +
+            (SELECT COUNT(*) FROM seller_profiles) +
+            (SELECT COUNT(*) FROM fixed_expenses)
+    """)
+    suspend fun countBusinessRecords(): Int
+
     @Query("SELECT * FROM cash_entries ORDER BY dateMillis DESC, id DESC") fun observeCashEntries(): Flow<List<CashEntry>>
     @Query("SELECT * FROM cash_entries") suspend fun allCashEntries(): List<CashEntry>
     @Query("SELECT * FROM cash_entries WHERE id = :id LIMIT 1") suspend fun cashEntryById(id: Long): CashEntry?
