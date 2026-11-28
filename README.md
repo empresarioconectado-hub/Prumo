@@ -31,6 +31,7 @@ A versão atual utiliza armazenamento local no dispositivo. O aplicativo não of
 | DRE gerencial | Receita bruta e líquida, tributos estimados, CMV, comissões, margem de contribuição, despesas fixas e resultado operacional gerencial. |
 | Equipe | Cadastro de vendedores, metas mensais, comissões e ranking de vendas. |
 | Despesas fixas | Lançamentos classificados por categoria para análise mensal. |
+| Aparência | Tema claro, escuro ou automático conforme o Android. |
 | Privacidade visual | Ocultação de valores monetários nas telas compatíveis. |
 | Relatórios | Exportação de DRE gerencial em PDF e lançamentos do caixa em CSV. |
 | Backup | Exportação e restauração manual de JSON versionado, protegido por senha com AES-256-GCM. |
@@ -136,7 +137,7 @@ O backup valida formato, versão, tamanho, campos, faixas numéricas, identifica
 
 O manifesto desativa o backup automático do Android e não declara permissão de notificações que não seja utilizada pela versão atual. O modo de ocultação de valores é apenas visual; não equivale a criptografia. O bloqueio opcional usa a biometria ou credencial do dispositivo e protege a visualização do app em capturas e na tela de recentes enquanto ativado.
 
-Os novos backups são protegidos por senha com PBKDF2 e AES-256-GCM. A senha não é armazenada pelo aplicativo; mantenha-a em local seguro. Backups antigos em JSON sem criptografia continuam aceitos para migração. A criptografia protege o arquivo exportado, não o banco local do aplicativo.
+Os novos backups são protegidos por senha com PBKDF2 e AES-256-GCM. A criptografia, leitura e gravação dos arquivos são executadas fora da thread principal. A senha não é armazenada pelo aplicativo; mantenha-a em local seguro. Backups antigos em JSON sem criptografia continuam aceitos para migração. A criptografia protege o arquivo exportado, não o banco local do aplicativo.
 
 Consulte [Segurança](docs/seguranca.md) e [Política de Privacidade](docs/politica-de-privacidade.md).
 
