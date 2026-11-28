@@ -1,7 +1,18 @@
 package com.example.ui
 
 import android.app.Application
+import android.app.KeyguardManager
+import android.content.Context
+import android.os.Build
+import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,11 +28,13 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.FloatingActionButton
@@ -40,6 +53,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -116,7 +131,8 @@ private sealed interface ActiveDialog {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrumoApp() {
-    val context = LocalContext.current.applicationContext as Application
+    val activity = LocalContext.current as FragmentActivity
+    val context = activity.applicationContext as Application
     val viewModel: PrumoViewModel = viewModel(
         factory = remember(context) {
             object : ViewModelProvider.Factory {
@@ -132,7 +148,76 @@ fun PrumoApp() {
     )
 
     val dashboardData by viewModel.dashboardState.collectAsStateWithLifecycle()
+
+    val biometricPrompt = remember(activity) {
+        BiometricPrompt(
+            activity,
+            ContextCompat.getMainExecutor(activity),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    isAppUnlocked = true
+                    appLockError = null
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    isAppUnlocked = false
+                    appLockError = errString.toString()
+                }
+
+                override fun onAuthenticationFailed() {
+                    appLockError = "Não foi possível confirmar sua identidade. Tente novamente."
+                }
+            }
+        )
+    }
+
+    fun requestAppUnlock() {
+        val promptBuilder = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Desbloquear Prumo")
+            .setSubtitle("Confirme sua identidade para acessar os dados financeiros.")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            promptBuilder.setAllowedAuthenticators(
+                BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            )
+        } else {
+            promptBuilder.setDeviceCredentialAllowed(true)
+        }
+        biometricPrompt.authenticate(promptBuilder.build())
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, dashboardData.settings.appLockEnabled, biometricPrompt) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    if (dashboardData.settings.appLockEnabled) {
+                        isAppUnlocked = false
+                    }
+                }
+                Lifecycle.Event.ON_START -> {
+                    if (dashboardData.settings.appLockEnabled && !isAppUnlocked) {
+                        appLockError = null
+                        requestAppUnlock()
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    SideEffect {
+        if (dashboardData.settings.appLockEnabled) {
+            activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
     var hideValues by rememberSaveable { mutableStateOf(false) }
+    var isAppUnlocked by remember { mutableStateOf(false) }
+    var appLockError by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val backupRepository = remember(context) {
@@ -500,6 +585,23 @@ fun PrumoApp() {
                 onImportBackup = {
                     activeDialog = null
                     importBackupLauncher.launch(arrayOf("application/json", "text/json"))
+                },
+                appLockEnabled = dashboardData.settings.appLockEnabled,
+                onToggleAppLock = { enabled ->
+                    val keyguard = activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+                    if (enabled && !keyguard.isDeviceSecure) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Configure um PIN, padrão ou senha de bloqueio no Android antes de ativar a proteção do Prumo.")
+                        }
+                        false
+                    } else {
+                        viewModel.setAppLockEnabled(enabled)
+                        if (enabled) {
+                            isAppUnlocked = true
+                            appLockError = null
+                        }
+                        true
+                    }
                 }
             )
         }
@@ -595,6 +697,38 @@ fun PrumoApp() {
                 }) { Text("Cancelar") }
             }
         )
+    }
+
+    if (dashboardData.settings.appLockEnabled && !isAppUnlocked) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+            ) {
+                Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.padding(bottom = 12.dp))
+                Text("Prumo bloqueado", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "Use a biometria ou a credencial de bloqueio do dispositivo para acessar os dados financeiros.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (appLockError != null) {
+                    Text(
+                        appLockError.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                Button(onClick = { requestAppUnlock() }, modifier = Modifier.padding(top = 16.dp)) {
+                    Text("Desbloquear")
+                }
+            }
+        }
     }
 
 }
