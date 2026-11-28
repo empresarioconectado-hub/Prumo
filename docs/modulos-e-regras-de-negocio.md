@@ -78,7 +78,21 @@ O registro de venda contempla:
 - produto relacionado, quando aplicável;
 - forma de pagamento, conta e situação.
 
-Quando uma venda é registrada com vínculo a um item de estoque, o sistema atualiza o saldo e registra a movimentação correspondente. O repositório também mantém o lançamento de caixa associado à venda.
+Quando uma venda é registrada com vínculo a um item de estoque, o sistema valida a disponibilidade, atualiza o saldo e registra a movimentação correspondente. O repositório também mantém o lançamento de caixa associado à venda dentro do fluxo transacional do Room.
+
+### Venda rápida
+
+O fluxo de venda rápida é destinado a operações simples de balcão e solicita os dados essenciais: descrição, cliente (opcional), quantidade, total, forma de pagamento e situação do recebimento. O vendedor e os parâmetros padrão do negócio são preenchidos automaticamente quando disponíveis.
+
+- É possível selecionar um item cadastrado no estoque. Nesse caso, a quantidade é validada antes do envio e o custo é calculado com base no custo unitário cadastrado.
+- Também é possível registrar uma venda sem vínculo com estoque. Nessa situação, o custo é gravado como zero e a interface informa essa limitação; para informar CMV de forma detalhada, deve-se utilizar a edição completa.
+- A versão atual registra um item por venda. Não existe ainda carrinho com múltiplos produtos na mesma operação.
+
+### Comprovante e compartilhamento
+
+Após a gravação bem-sucedida, o banco retorna o ID real da venda. Somente depois dessa confirmação o ViewModel emite o evento de venda salva e a interface apresenta o comprovante. O texto contém identificador, data, cliente, item, quantidade, total, forma de pagamento e situação do recebimento.
+
+O compartilhamento utiliza o mecanismo nativo Android Sharesheet (`Intent.ACTION_SEND`, tipo `text/plain`). O usuário escolhe o aplicativo de destino e confirma o envio. O Prumo não se conecta diretamente à API do WhatsApp, não envia mensagens automaticamente e não depende de uma API paga da Meta. A disponibilidade do WhatsApp depende de ele estar instalado e habilitado no dispositivo.
 
 A exclusão ou alteração de uma venda deve respeitar os vínculos com caixa e estoque, evitando que um lançamento relacionado seja manipulado isoladamente.
 
@@ -141,4 +155,4 @@ Os itens abaixo não devem ser considerados disponíveis até que exista impleme
 - transferências entre contas com tratamento específico na DRE;
 - notificações programadas por WorkManager;
 - anexos de comprovantes;
-- recibos compartilháveis dedicados.
+- carrinho com múltiplos produtos em uma única venda.
