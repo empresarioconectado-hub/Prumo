@@ -162,11 +162,6 @@ fun PrumoApp() {
         initialValue = BusinessSettings(appLockEnabled = true)
     )
     var securitySettingsLoaded by remember { mutableStateOf(false) }
-    LaunchedEffect(securitySettingsFlow) {
-        securitySettingsFlow.first()
-        deviceHasSecureLock = keyguardManager.isDeviceSecure
-        securitySettingsLoaded = true
-    }
     val appLockEnabled = securitySettings.appLockEnabled
     var hideValues by rememberSaveable { mutableStateOf(false) }
     var isAppUnlocked by remember { mutableStateOf(false) }
@@ -175,6 +170,12 @@ fun PrumoApp() {
         activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
     }
     var deviceHasSecureLock by remember { mutableStateOf(false) }
+
+    LaunchedEffect(securitySettingsFlow, keyguardManager) {
+        securitySettingsFlow.first()
+        deviceHasSecureLock = keyguardManager.isDeviceSecure
+        securitySettingsLoaded = true
+    }
 
     val biometricPrompt = remember(activity) {
         BiometricPrompt(
