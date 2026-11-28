@@ -22,6 +22,14 @@ class PrumoBackupCryptoTest {
     }
 
     @Test
+    @Config(sdk = [24])
+    fun encryptedBackupSupportsMinimumAndroidApi() {
+        val source = """{"format":"prumo-backup","schemaVersion":1}"""
+        val encrypted = PrumoBackupCrypto.encrypt(source, "senha-forte-de-teste-2026")
+        assertEquals(source, PrumoBackupCrypto.decrypt(encrypted, "senha-forte-de-teste-2026"))
+    }
+
+    @Test
     fun encryptedBackupRejectsAnIncorrectPassword() {
         val encrypted = PrumoBackupCrypto.encrypt("dados financeiros", "senha-forte-de-teste-2026")
 

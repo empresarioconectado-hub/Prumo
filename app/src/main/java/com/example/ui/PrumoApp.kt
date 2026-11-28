@@ -226,6 +226,7 @@ fun PrumoApp() {
         PrumoRepository(PrumoDatabase.getInstance(context).prumoDao(), SettingsDataStore(context))
     }
     var backupPassword by remember { mutableStateOf("") }
+    var backupPasswordConfirmation by remember { mutableStateOf("") }
     var pendingBackupImportJson by remember { mutableStateOf<String?>(null) }
     var showBackupExportPasswordDialog by remember { mutableStateOf(false) }
     var showBackupImportPasswordDialog by remember { mutableStateOf(false) }
@@ -239,13 +240,16 @@ fun PrumoApp() {
                     ?: error("Não foi possível abrir o arquivo de destino.")
                 output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
                 backupPassword = ""
+                backupPasswordConfirmation = ""
                 snackbarHostState.showSnackbar("Backup criptografado exportado com sucesso.")
             } catch (error: Exception) {
                 backupPassword = ""
+                backupPasswordConfirmation = ""
                 snackbarHostState.showSnackbar("Falha ao exportar backup: ${error.message}")
             }
         } else {
             backupPassword = ""
+            backupPasswordConfirmation = ""
         }
     }
     val exportDrePdfLauncher = rememberLauncherForActivityResult(
@@ -582,6 +586,7 @@ fun PrumoApp() {
                 onExportBackup = {
                     activeDialog = null
                     backupPassword = ""
+                    backupPasswordConfirmation = ""
                     showBackupExportPasswordDialog = true
                 },
                 onImportBackup = {
@@ -613,6 +618,7 @@ fun PrumoApp() {
             onDismissRequest = {
                 showBackupExportPasswordDialog = false
                 backupPassword = ""
+                backupPasswordConfirmation = ""
             },
             title = { Text("Proteger backup") },
             text = {
@@ -625,11 +631,21 @@ fun PrumoApp() {
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation()
                     )
+                    OutlinedTextField(
+                        value = backupPasswordConfirmation,
+                        onValueChange = { backupPasswordConfirmation = it.take(128) },
+                        label = { Text("Confirme a senha") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                    if (backupPasswordConfirmation.isNotEmpty() && backupPassword != backupPasswordConfirmation) {
+                        Text("As senhas não coincidem.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
-                    enabled = backupPassword.length >= 12,
+                    enabled = backupPassword.length >= 12 && backupPassword == backupPasswordConfirmation,
                     onClick = {
                         showBackupExportPasswordDialog = false
                         exportBackupLauncher.launch("prumo-backup-${System.currentTimeMillis()}.json")
@@ -640,6 +656,7 @@ fun PrumoApp() {
                 TextButton(onClick = {
                     showBackupExportPasswordDialog = false
                     backupPassword = ""
+                    backupPasswordConfirmation = ""
                 }) { Text("Cancelar") }
             }
         )

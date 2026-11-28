@@ -31,20 +31,23 @@ internal object PrumoBackupCrypto {
         val iv = ByteArray(IV_BYTES).also(random::nextBytes)
         val kdf = if (Build.VERSION.SDK_INT >= 26) "PBKDF2WithHmacSHA256" else "PBKDF2WithHmacSHA1"
         val keyBytes = deriveKey(password, salt, ITERATIONS, kdf)
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(TAG_LENGTH_BITS, iv))
-        val encrypted = cipher.doFinal(plainText.toByteArray(StandardCharsets.UTF_8))
-        keyBytes.fill(0)
-        return JSONObject()
-            .put("format", FORMAT)
-            .put("encryptionVersion", VERSION)
-            .put("kdf", kdf)
-            .put("iterations", ITERATIONS)
-            .put("cipher", "AES-256-GCM")
-            .put("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
-            .put("iv", Base64.encodeToString(iv, Base64.NO_WRAP))
-            .put("ciphertext", Base64.encodeToString(encrypted, Base64.NO_WRAP))
-            .toString(2)
+        try {
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(TAG_LENGTH_BITS, iv))
+            val encrypted = cipher.doFinal(plainText.toByteArray(StandardCharsets.UTF_8))
+            return JSONObject()
+                .put("format", FORMAT)
+                .put("encryptionVersion", VERSION)
+                .put("kdf", kdf)
+                .put("iterations", ITERATIONS)
+                .put("cipher", "AES-256-GCM")
+                .put("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
+                .put("iv", Base64.encodeToString(iv, Base64.NO_WRAP))
+                .put("ciphertext", Base64.encodeToString(encrypted, Base64.NO_WRAP))
+                .toString(2)
+        } finally {
+            keyBytes.fill(0)
+        }
     }
 
     fun decrypt(envelopeJson: String, password: String): String {
