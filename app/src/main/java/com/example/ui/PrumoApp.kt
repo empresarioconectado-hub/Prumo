@@ -810,7 +810,6 @@ fun PrumoApp() {
                         Text(if (deviceHasSecureLock) "Desbloquear" else "Configurar bloqueio")
                     }
                 }
-                }
             }
         }
     }
