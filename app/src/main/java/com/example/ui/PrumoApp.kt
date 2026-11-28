@@ -235,7 +235,15 @@ fun PrumoApp() {
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     isAppUnlocked = false
-                    if (errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                    val credentialFallbackRequired = errorCode in setOf(
+                        BiometricPrompt.ERROR_NEGATIVE_BUTTON,
+                        BiometricPrompt.ERROR_NO_BIOMETRICS,
+                        BiometricPrompt.ERROR_HW_NOT_PRESENT,
+                        BiometricPrompt.ERROR_HW_UNAVAILABLE,
+                        BiometricPrompt.ERROR_LOCKOUT,
+                        BiometricPrompt.ERROR_LOCKOUT_PERMANENT
+                    )
+                    if (credentialFallbackRequired) {
                         requestDeviceCredential()
                     } else {
                         appLockError = errString.toString()
