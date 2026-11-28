@@ -12,6 +12,9 @@ import com.example.model.StockMovementType
 import com.example.model.StockMovement
 import java.util.Calendar
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class PrumoRepository(
     private val dao: PrumoDao,
@@ -26,6 +29,7 @@ class PrumoRepository(
     val fixedExpensesFlow: Flow<List<FixedExpense>> = dao.observeFixedExpenses()
 
     private val backupManager = PrumoBackupManager(dao, settingsStore)
+    private val sampleDataMutex = Mutex()
 
     suspend fun exportBackupJson(): String = backupManager.exportJson()
 
@@ -156,15 +160,22 @@ class PrumoRepository(
         settingsStore.resetDefaults()
     }
 
-    suspend fun loadSampleData() {
-        clearAllData()
+    /**
+     * Inserts demonstration records only when the operational database is empty.
+     * This operation is intentionally non-destructive: it never clears existing data.
+     */
+    suspend fun loadSampleData(): Boolean = sampleDataMutex.withLock {
+        if (dao.countBusinessRecords() > 0) return@withLock false
 
-        settingsStore.updateSettings(
-            businessName = "Empório Prumo Ltda",
-            initialBalanceCents = 850_000L, // R$ 8.500,00
-            minCashAlertCents = 500_000L,   // R$ 5.000,00
-            taxRatePercent = 6.0
-        )
+        // Preserve settings already entered by the owner; use demo defaults only on a pristine install.
+        if (settingsStore.settingsFlow.first() == BusinessSettings()) {
+            settingsStore.updateSettings(
+                businessName = "Empório Prumo Ltda",
+                initialBalanceCents = 850_000L, // R$ 8.500,00
+                minCashAlertCents = 500_000L,   // R$ 5.000,00
+                taxRatePercent = 6.0
+            )
+        }
 
         val now = System.currentTimeMillis()
         val dayMs = 24L * 60L * 60L * 1000L
@@ -389,5 +400,6 @@ class PrumoRepository(
                 FixedExpense(description = "ERP / Emissor fiscal", category = "Sistemas", amountCents = 24_000L, dateMillis = todayNoon)
             )
         )
+        true
     }
 }
