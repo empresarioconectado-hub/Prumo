@@ -3,6 +3,8 @@ package com.example.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.example.model.CashEntryType
+import com.example.model.SaleRecord
 import com.example.model.StockItem
 import com.example.model.StockMovementType
 import kotlinx.coroutines.runBlocking
@@ -98,14 +100,70 @@ class PrumoDaoInstrumentedTest {
     }
 
     @Test
-    fun purchaseOverflowDoesNotChangeBalanceOrCreateMovement() = runBlocking {
-        val id = createItem(Long.MAX_VALUE)
+    fun purchaseAboveMaximumStockDoesNotChangeBalanceOrCreateMovement() = runBlocking {
+        val id = createItem(PrumoValidation.MAX_STOCK_UNITS)
 
-        assertThrows(ArithmeticException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             runBlocking { dao.applyStockMovementAtomic(id, StockMovementType.PURCHASE, 1L) }
         }
 
-        assertEquals(Long.MAX_VALUE, dao.stockItemById(id)?.quantity)
+        assertEquals(PrumoValidation.MAX_STOCK_UNITS, dao.stockItemById(id)?.quantity)
         assertEquals(0, dao.allStockMovements().size)
+    }
+
+    private fun saleFor(itemId: Long, quantity: Long) = SaleRecord(
+        description = "Venda de teste",
+        clientName = "Cliente de teste",
+        sellerName = "Vendedor de teste",
+        quantity = quantity,
+        grossAmountCents = 15_000L,
+        costAmountCents = 4_500L,
+        taxPercent = 6.0,
+        commissionPercent = 2.0,
+        saleDateMillis = 1_700_000_000_000L,
+        stockItemId = itemId
+    )
+
+    @Test
+    fun saleUpdatesInventoryCashAndMovementHistoryAtomically() = runBlocking {
+        val itemId = createItem(10L)
+
+        dao.saveSaleAtomic(saleFor(itemId, 3L))
+
+        assertEquals(7L, dao.stockItemById(itemId)?.quantity)
+        val sale = dao.allSales().single()
+        val cashEntry = dao.allCashEntries().single()
+        assertEquals(sale.id, cashEntry.saleId)
+        assertEquals(CashEntryType.INCOME.name, cashEntry.type)
+        assertEquals(1, dao.allStockMovements().size)
+        assertEquals(StockMovementType.SALE.name, dao.allStockMovements().single().movementType)
+    }
+
+    @Test
+    fun insufficientStockRollsBackSaleCashAndInventoryChanges() = runBlocking {
+        val itemId = createItem(2L)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { dao.saveSaleAtomic(saleFor(itemId, 3L)) }
+        }
+
+        assertEquals(2L, dao.stockItemById(itemId)?.quantity)
+        assertEquals(0, dao.allSales().size)
+        assertEquals(0, dao.allCashEntries().size)
+        assertEquals(0, dao.allStockMovements().size)
+    }
+
+    @Test
+    fun deletingSaleRestoresInventoryAndRemovesLinkedCashEntry() = runBlocking {
+        val itemId = createItem(5L)
+        dao.saveSaleAtomic(saleFor(itemId, 2L))
+        val saleId = dao.allSales().single().id
+
+        dao.deleteSaleAtomic(saleId)
+
+        assertEquals(5L, dao.stockItemById(itemId)?.quantity)
+        assertEquals(0, dao.allSales().size)
+        assertEquals(0, dao.allCashEntries().size)
+        assertEquals(2, dao.allStockMovements().size)
     }
 }
