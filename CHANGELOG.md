@@ -65,3 +65,16 @@ Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo 
 ### Documentação
 - README reorganizado com escopo real da versão.
 - Adicionadas diretrizes de usabilidade, acessibilidade e checklist de publicação.
+### Loop 1 — experiência de primeiro acesso
+- Adicionada orientação inicial para negócios sem registros, com atalhos para registrar a primeira entrada ou venda e opção de explorar dados de exemplo.
+- Incluídas identificações de interface para apoiar testes automatizados dos atalhos de primeiro acesso.
+
+### Loop 2 — venda rápida e comprovante compartilhável
+- Adicionado formulário de venda rápida separado do formulário completo, com descrição, cliente, quantidade, total, forma de pagamento e situação do recebimento.
+- Permite vincular opcionalmente um produto do estoque; quando vinculado, valida a disponibilidade e registra o custo calculado a partir do custo unitário cadastrado.
+- Mantém a gravação da venda e os efeitos relacionados em caixa/estoque no fluxo transacional existente do Room.
+- O DAO retorna o identificador persistido da venda e o repositório devolve o registro com esse ID; o ViewModel emite o evento de sucesso somente após a gravação.
+- Adicionado comprovante textual com número real da venda, data, cliente, item, quantidade, total e pagamento.
+- O compartilhamento utiliza `Intent.ACTION_SEND` e o Android Sharesheet. O usuário escolhe o destino e confirma o envio; não há integração direta com a API do WhatsApp nem envio automático.
+- Incluído teste unitário para o conteúdo do comprovante.
+- A venda rápida atual registra um item por venda. Carrinho com múltiplos produtos permanece como evolução futura.
