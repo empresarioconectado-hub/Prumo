@@ -162,6 +162,9 @@ fun PrumoApp() {
         securitySettingsLoaded = true
     }
     val appLockEnabled = securitySettings.appLockEnabled
+    var hideValues by rememberSaveable { mutableStateOf(false) }
+    var isAppUnlocked by remember { mutableStateOf(false) }
+    var appLockError by remember { mutableStateOf<String?>(null) }
 
     val biometricPrompt = remember(activity) {
         BiometricPrompt(
@@ -229,9 +232,6 @@ fun PrumoApp() {
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
-    var hideValues by rememberSaveable { mutableStateOf(false) }
-    var isAppUnlocked by remember { mutableStateOf(false) }
-    var appLockError by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val backupRepository = remember(context) {
