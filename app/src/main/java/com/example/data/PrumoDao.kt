@@ -90,7 +90,7 @@ interface PrumoDao {
     @Query("DELETE FROM sale_records") suspend fun clearSales()
 
     @Transaction
-    suspend fun saveSaleAtomic(sale: SaleRecord) {
+    suspend fun saveSaleAtomic(sale: SaleRecord): Long {
         require(sale.quantity > 0L) { "A quantidade da venda deve ser maior que zero." }
         require(sale.grossAmountCents > 0L && sale.costAmountCents >= 0L) { "Os valores da venda são inválidos." }
         require(sale.taxPercent in 0.0..100.0 && sale.commissionPercent in 0.0..100.0) { "Percentuais inválidos." }
@@ -122,6 +122,7 @@ interface PrumoDao {
             paymentMethod = saved.paymentMethod, status = saved.paymentStatus,
             dateMillis = saved.saleDateMillis, saleId = id
         ))
+        return id
     }
 
     @Transaction
