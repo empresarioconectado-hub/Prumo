@@ -121,6 +121,9 @@ class PrumoViewModel(
     private val _feedbackEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val feedbackEvents: SharedFlow<String> = _feedbackEvents.asSharedFlow()
 
+    private val _saleSavedEvents = MutableSharedFlow<SaleRecord>(extraBufferCapacity = 1)
+    val saleSavedEvents: SharedFlow<SaleRecord> = _saleSavedEvents.asSharedFlow()
+
     private val rawCollectionsBaseFlow = combine(
         repository.settingsFlow,
         repository.cashEntriesFlow,
@@ -460,8 +463,9 @@ class PrumoViewModel(
     fun saveSale(sale: SaleRecord) {
         viewModelScope.launch {
             try {
-                repository.saveSale(sale)
+                val savedSale = repository.saveSale(sale)
                 _feedbackEvents.tryEmit(if (sale.id == 0L) "Venda registrada no caixa, estoque e DRE." else "Venda atualizada.")
+                if (sale.id == 0L) _saleSavedEvents.tryEmit(savedSale)
             } catch (error: IllegalArgumentException) {
                 _feedbackEvents.tryEmit(error.message ?: "Não foi possível registrar a venda.")
             } catch (error: Exception) {
