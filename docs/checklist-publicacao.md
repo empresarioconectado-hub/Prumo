@@ -32,6 +32,8 @@ Este documento é o gate de release. Marque cada item somente após existir evid
 - [ ] Backup criptografado exportado e restaurado em instalação limpa.
 - [ ] Senha incorreta rejeitada e perda de senha comunicada ao usuário.
 - [ ] Backup legado sem criptografia importado e reexportado no novo formato.
+- [ ] Senha incorreta rejeitada e perda de senha comunicada ao usuário.
+- [ ] Backup legado sem criptografia importado e reexportado no novo formato.
 - [ ] Backup inválido, truncado, grande e com referências inconsistentes rejeitado.
 - [ ] Falha durante restauração não deixa estado parcial.
 - [ ] Exportação e restauração preservam todos os campos.
@@ -88,7 +90,6 @@ Este documento é o gate de release. Marque cada item somente após existir evid
 
 ## Bloqueios conhecidos a resolver antes de publicar
 
-- O backup JSON é texto legível e ainda não possui criptografia própria.
 - O Room e o DataStore são persistências separadas; a recuperação em falha entre ambas precisa de estratégia e testes de compensação.
 - A senha do backup e a experiência de recuperação ainda precisam ser validadas em dispositivos físicos.
 - Não há comprovação de testes em dispositivos físicos nesta revisão.

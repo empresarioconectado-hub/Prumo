@@ -135,7 +135,7 @@ O backup valida formato, versão, tamanho, campos, faixas numéricas, identifica
 
 O manifesto desativa o backup automático do Android e não declara permissão de notificações que não seja utilizada pela versão atual. O modo de ocultação de valores é apenas visual; não equivale a criptografia. O bloqueio opcional usa a biometria ou credencial do dispositivo e protege a visualização do app em capturas e na tela de recentes enquanto ativado.
 
-O backup JSON contém informações financeiras em texto legível. Guarde os arquivos em local privado e compartilhe-os apenas com pessoas autorizadas. A versão atual não oferece criptografia própria de backup nem bloqueio biométrico/PIN.
+Os novos backups são protegidos por senha com PBKDF2 e AES-256-GCM. A senha não é armazenada pelo aplicativo; mantenha-a em local seguro. Backups antigos em JSON sem criptografia continuam aceitos para migração. O bloqueio opcional utiliza biometria ou credencial do dispositivo e protege a visualização do app em capturas e na tela de recentes enquanto ativado.
 
 Consulte [Segurança](docs/seguranca.md) e [Política de Privacidade](docs/politica-de-privacidade.md).
 
