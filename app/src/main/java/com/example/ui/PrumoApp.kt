@@ -3,6 +3,12 @@ package com.example.ui
 import android.app.Application
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.ContextWrapper
@@ -119,6 +125,10 @@ private const val ROUTE_OVERVIEW = "overview"
 private const val ROUTE_CASH = "cash_flow"
 private const val ROUTE_STOCK = "stock"
 private const val ROUTE_SALES_DRE = "sales_dre"
+private const val APP_LOCK_KEY_ALIAS = "prumo_app_lock_key"
+private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+private const val APP_LOCK_CIPHER_TRANSFORMATION =
+    "${KeyProperties.KEY_ALGORITHM_AES}/${KeyProperties.BLOCK_MODE_CBC}/${KeyProperties.ENCRYPTION_PADDING_PKCS7}"
 
 private data class NavTabItem(
     val label: String,
@@ -185,8 +195,18 @@ fun PrumoApp() {
             ContextCompat.getMainExecutor(activity),
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    isAppUnlocked = true
-                    appLockError = null
+                    val cipher = result.cryptoObject?.cipher
+                    val cryptoVerified = runCatching {
+                        cipher?.doFinal("prumo_unlock_check".toByteArray(StandardCharsets.UTF_8))
+                    }.isSuccess && cipher != null
+
+                    if (cryptoVerified) {
+                        isAppUnlocked = true
+                        appLockError = null
+                    } else {
+                        isAppUnlocked = false
+                        appLockError = "Falha de validação criptográfica da autenticação."
+                    }
                 }
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -822,6 +842,30 @@ fun PrumoApp() {
         }
     }
 
+}
+
+private fun getOrCreateAppLockSecretKey(): SecretKey {
+    val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+    (keyStore.getKey(APP_LOCK_KEY_ALIAS, null) as? SecretKey)?.let { return it }
+
+    val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
+    val keySpec = KeyGenParameterSpec.Builder(
+        APP_LOCK_KEY_ALIAS,
+        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+    )
+        .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+        .setUserAuthenticationRequired(true)
+        .setInvalidatedByBiometricEnrollment(true)
+        .build()
+    keyGenerator.init(keySpec)
+    return keyGenerator.generateKey()
+}
+
+private fun createBiometricCipherForAuth(): Cipher {
+    val cipher = Cipher.getInstance(APP_LOCK_CIPHER_TRANSFORMATION)
+    cipher.init(Cipher.ENCRYPT_MODE, getOrCreateAppLockSecretKey())
+    return cipher
 }
 
 private tailrec fun Context.findFragmentActivity(): FragmentActivity? = when (this) {
