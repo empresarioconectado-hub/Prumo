@@ -3,6 +3,7 @@ package com.example.ui
 import android.app.Application
 import android.app.KeyguardManager
 import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -131,7 +132,8 @@ private sealed interface ActiveDialog {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrumoApp() {
-    val activity = LocalContext.current as FragmentActivity
+    val activity = LocalContext.current.findFragmentActivity()
+        ?: error("A tela do Prumo precisa estar vinculada a uma FragmentActivity.")
     val context = activity.applicationContext as Application
     val viewModel: PrumoViewModel = viewModel(
         factory = remember(context) {
@@ -731,4 +733,10 @@ fun PrumoApp() {
         }
     }
 
+}
+
+private tailrec fun Context.findFragmentActivity(): FragmentActivity? = when (this) {
+    is FragmentActivity -> this
+    is ContextWrapper -> baseContext.findFragmentActivity()
+    else -> null
 }
