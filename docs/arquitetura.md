@@ -98,7 +98,7 @@ A camada de exportação produz:
 
 ## Persistência e transações
 
-Operações que envolvem mais de uma tabela utilizam métodos transacionais do DAO quando necessário. O objetivo é evitar estados parciais em operações como movimentações de estoque e substituição dos dados durante a restauração do backup.
+Operações que envolvem mais de uma tabela utilizam métodos transacionais do DAO. A movimentação manual de estoque atualiza saldo e histórico na mesma transação, valida quantidade positiva, impede saída acima do saldo e utiliza aritmética com detecção de overflow. A limpeza das tabelas operacionais também é executada em uma transação única. A venda mantém a atualização de caixa, estoque e histórico em uma transação Room.
 
 A persistência do banco Room e as preferências do DataStore são mecanismos distintos. Não se deve presumir que uma transação Room englobe alterações do DataStore.
 
@@ -118,3 +118,8 @@ Alterações de arquitetura devem preservar:
 - possibilidade de exportar e restaurar os dados;
 - separação entre interface e persistência;
 - testes para regras financeiras e operações transacionais.
+
+
+## Limite transacional entre Room e DataStore
+
+Room e Preferences DataStore são armazenamentos independentes. Uma transação Room não inclui a escrita no DataStore. Na restauração do backup, os dados Room são substituídos e as preferências são atualizadas em seguida. Uma falha de processo ou de I/O entre essas etapas pode deixar as preferências antigas junto aos dados restaurados. O fluxo precisa de teste de falha e estratégia de compensação ou migração das configurações para o banco antes de ser considerado atomicamente recuperável.

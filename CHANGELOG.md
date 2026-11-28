@@ -32,3 +32,22 @@ Quando houver releases, cada versão deverá registrar:
 - limitações conhecidas.
 
 Recomenda-se utilizar versionamento semântico para o nome da versão, mantendo o `versionCode` Android crescente.
+
+
+## Unreleased — preparação para publicação
+
+### Segurança e integridade
+- Movimentações de estoque atualizam saldo e histórico dentro de uma transação Room.
+- Adicionada proteção contra overflow em entradas e estornos de estoque.
+- Limpeza de dados operacionais centralizada em transação Room.
+- Validação estrutural ampliada para backups JSON, incluindo tamanho máximo, faixas, identificadores e referências.
+- Removida permissão de notificações não utilizada e desabilitado tráfego HTTP em texto claro.
+
+### Interface e qualidade
+- Corrigida a propagação do estado de ocultação de valores na projeção diária do caixa.
+- Corrigido o saldo inicial exibido no fluxo de caixa para respeitar o período selecionado.
+- CI ampliado com Android Lint e testes instrumentados em emulador.
+
+### Documentação
+- README reorganizado com escopo real da versão.
+- Adicionadas diretrizes de usabilidade, acessibilidade e checklist de publicação.

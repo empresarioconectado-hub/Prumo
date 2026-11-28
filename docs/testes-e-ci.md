@@ -82,3 +82,15 @@ Antes de solicitar revisão:
 3. confira o resultado do GitHub Actions;
 4. teste manualmente os fluxos afetados em um dispositivo ou emulador;
 5. atualize a documentação correspondente.
+
+
+## Pipeline atual
+
+O workflow `.github/workflows/build-apk.yml` executa:
+1. testes unitários do variant debug;
+2. Android Lint;
+3. geração do APK debug;
+4. publicação do APK e do relatório de lint como artefatos temporários;
+5. testes instrumentados em emulador Android.
+
+A aprovação do pipeline comprova somente os cenários automatizados executados. Não substitui testes exploratórios, testes em aparelhos físicos, revisão de segurança ou validação de release assinado.
