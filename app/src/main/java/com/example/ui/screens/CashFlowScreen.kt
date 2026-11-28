@@ -244,6 +244,7 @@ fun CashFlowScreen(
             items(filteredEntries, key = { it.id }) { entry ->
                 CashEntryCard(
                     entry = entry,
+                    hideValues = hideValues,
                     onTogglePaid = { onTogglePaid(entry) },
                     onEdit = { onEditEntry(entry) },
                     onDelete = { onDeleteEntry(entry.id) }
@@ -407,6 +408,7 @@ private fun DailyProjectionRow(day: DailyCashPoint, hideValues: Boolean) {
 @Composable
 private fun CashEntryCard(
     entry: CashEntry,
+    hideValues: Boolean,
     onTogglePaid: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
