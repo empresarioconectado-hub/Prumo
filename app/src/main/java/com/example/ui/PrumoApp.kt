@@ -783,9 +783,11 @@ fun PrumoApp() {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    if (deviceHasSecureLock) "Use a biometria ou a credencial de bloqueio do dispositivo para acessar os dados financeiros."
-                    else "Configure um PIN, padrão ou senha nas configurações do Android para proteger o Prumo."
-                    else "Aguarde enquanto as configurações de segurança são carregadas.",
+                    when {
+                        !securitySettingsLoaded -> "Aguarde enquanto as configurações de segurança são carregadas."
+                        deviceHasSecureLock -> "Use a biometria ou a credencial de bloqueio do dispositivo para acessar os dados financeiros."
+                        else -> "Configure um PIN, padrão ou senha nas configurações do Android para proteger o Prumo."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -798,9 +800,16 @@ fun PrumoApp() {
                     )
                 }
                 if (securitySettingsLoaded) {
-                    Button(onClick = { requestAppUnlock() }, modifier = Modifier.padding(top = 16.dp)) {
-                        Text("Desbloquear")
+                    Button(
+                        onClick = {
+                            if (deviceHasSecureLock) requestAppUnlock()
+                            else activity.startActivity(Intent(AndroidSettings.ACTION_SECURITY_SETTINGS))
+                        },
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text(if (deviceHasSecureLock) "Desbloquear" else "Configurar bloqueio")
                     }
+                }
                 }
             }
         }
