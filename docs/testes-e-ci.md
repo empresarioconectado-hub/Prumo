@@ -51,14 +51,15 @@ Etapas:
 
 O workflow também possui uma execução manual opcional para gerar AAB assinado. Esse job exige as secrets de assinatura de produção descritas em [Compilação e publicação](build-e-publicacao.md).
 
-O artefato `prumo-debug-apk` tem retenção de 14 dias.
+O artefato `prumo-debug-apk` e o relatório de lint têm retenção de 14 dias.
 
 ## O que o CI confirma
 
 Uma execução bem-sucedida confirma que:
 - os testes incluídos no comando `test` passaram;
 - o APK de depuração foi compilado;
-- o artefato esperado foi gerado e carregado.
+- o artefato esperado foi gerado e carregado;
+- a suíte instrumentada configurada no workflow concluiu, quando o job de emulador também estiver marcado como aprovado.
 
 O workflow inclui testes instrumentados em emulador, mas não comprova:
 - funcionamento em todos os modelos de aparelhos;
