@@ -36,6 +36,11 @@ class PrumoRepository(
         settingsStore.setAppLockEnabled(enabled)
     }
 
+    suspend fun setThemeMode(mode: String) {
+        require(mode in setOf("SYSTEM", "LIGHT", "DARK")) { "Modo de aparência inválido." }
+        settingsStore.setThemeMode(mode)
+    }
+
     suspend fun updateSettings(
         businessName: String,
         initialBalanceCents: Long,
