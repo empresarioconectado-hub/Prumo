@@ -106,6 +106,7 @@ import com.example.ui.components.BusinessSettingsDialog
 import com.example.ui.components.CashEntryDialog
 import com.example.ui.components.FixedExpenseDialog
 import com.example.ui.components.QuickEntryMenuDialog
+import com.example.ui.components.QuickSaleDialog
 import com.example.ui.components.SaleRecordDialog
 import com.example.ui.components.SellerDialog
 import com.example.ui.components.StockItemDialog
@@ -116,6 +117,7 @@ import com.example.ui.screens.SalesDreScreen
 import com.example.ui.screens.StockScreen
 import com.example.ui.viewmodel.PrumoViewModel
 import com.example.util.PrumoReportExporter
+import com.example.util.saleReceiptText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -142,6 +144,7 @@ private sealed interface ActiveDialog {
     data class CashEntryForm(val existing: CashEntry?, val initialType: CashEntryType) : ActiveDialog
     data class StockForm(val existing: StockItem?) : ActiveDialog
     data class StockMovementForm(val initialItem: StockItem?) : ActiveDialog
+    data object QuickSaleForm : ActiveDialog
     data class SaleForm(val existing: SaleRecord?) : ActiveDialog
     data class SellerForm(val existing: SellerProfile?) : ActiveDialog
     data class FixedExpenseForm(val existing: FixedExpense?) : ActiveDialog
@@ -416,11 +419,18 @@ fun PrumoApp() {
     val currentRouteName = backStackEntry?.destination?.route
 
     var activeDialog by remember { mutableStateOf<ActiveDialog?>(null) }
+    var pendingReceiptSale by remember { mutableStateOf<SaleRecord?>(null) }
     var currentTabIndex by rememberSaveable { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         viewModel.feedbackEvents.collect { msg ->
             snackbarHostState.showSnackbar(msg)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.saleSavedEvents.collect { savedSale ->
+            pendingReceiptSale = savedSale
         }
     }
 
@@ -560,7 +570,7 @@ fun PrumoApp() {
                                 hideValues = hideValues,
                                 onQuickIncome = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.INCOME) },
                                 onQuickExpense = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.EXPENSE) },
-                                onQuickSale = { activeDialog = ActiveDialog.SaleForm(null) },
+                                onQuickSale = { activeDialog = ActiveDialog.QuickSaleForm },
                                 onQuickStockMove = { activeDialog = ActiveDialog.StockMovementForm(null) },
                                 onOpenCashTab = { navigateTo(ROUTE_CASH, 1) },
                                 onOpenStockTab = { navigateTo(ROUTE_STOCK, 2) },
@@ -594,7 +604,7 @@ fun PrumoApp() {
                                 data = dashboardData,
                                 hideValues = hideValues,
                                 onShiftMonth = viewModel::shiftMonth,
-                                onAddSale = { activeDialog = ActiveDialog.SaleForm(null) },
+                                onAddSale = { activeDialog = ActiveDialog.QuickSaleForm },
                                 onEditSale = { activeDialog = ActiveDialog.SaleForm(it) },
                                 onDeleteSale = viewModel::deleteSale,
                                 onAddSeller = { activeDialog = ActiveDialog.SellerForm(null) },
@@ -620,7 +630,7 @@ fun PrumoApp() {
                 onDismiss = { activeDialog = null },
                 onNewIncome = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.INCOME) },
                 onNewExpense = { activeDialog = ActiveDialog.CashEntryForm(null, CashEntryType.EXPENSE) },
-                onNewSale = { activeDialog = ActiveDialog.SaleForm(null) },
+                onNewSale = { activeDialog = ActiveDialog.QuickSaleForm },
                 onMoveStock = { activeDialog = ActiveDialog.StockMovementForm(null) },
                 onNewFixedExpense = { activeDialog = ActiveDialog.FixedExpenseForm(null) }
             )
@@ -653,6 +663,18 @@ fun PrumoApp() {
                 onDismiss = { activeDialog = null },
                 onConfirm = { item, type, qty ->
                     viewModel.applyStockMovement(item, type, qty)
+                    activeDialog = null
+                }
+            )
+        }
+        ActiveDialog.QuickSaleForm -> {
+            QuickSaleDialog(
+                sellers = dashboardData.sellers,
+                stockItems = dashboardData.stockItems,
+                defaultTaxPercent = dashboardData.settings.taxRatePercent,
+                onDismiss = { activeDialog = null },
+                onSave = { sale ->
+                    viewModel.saveSale(sale)
                     activeDialog = null
                 }
             )
@@ -742,6 +764,45 @@ fun PrumoApp() {
             )
         }
     }
+    pendingReceiptSale?.let { savedSale ->
+        AlertDialog(
+            onDismissRequest = { pendingReceiptSale = null },
+            title = { Text("Venda registrada") },
+            text = {
+                Text(saleReceiptText(savedSale, dashboardData.settings.businessName))
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                saleReceiptText(savedSale, dashboardData.settings.businessName)
+                            )
+                        }
+                        runCatching {
+                            activity.startActivity(
+                                Intent.createChooser(sendIntent, "Compartilhar comprovante")
+                            )
+                        }.onFailure {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Não foi possível abrir o compartilhamento.")
+                            }
+                        }
+                        pendingReceiptSale = null
+                    },
+                    modifier = Modifier.testTag("share_sale_receipt_button")
+                ) {
+                    Text("Compartilhar comprovante")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingReceiptSale = null }) { Text("Fechar") }
+            }
+        )
+    }
+
     if (showBackupExportPasswordDialog) {
         AlertDialog(
             onDismissRequest = {

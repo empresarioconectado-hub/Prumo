@@ -108,9 +108,10 @@ class PrumoRepository(
         return true
     }
 
-    suspend fun saveSale(sale: SaleRecord) {
+    suspend fun saveSale(sale: SaleRecord): SaleRecord {
         PrumoValidation.sale(sale)
-        dao.saveSaleAtomic(sale)
+        val savedId = dao.saveSaleAtomic(sale)
+        return sale.copy(id = savedId)
     }
 
     suspend fun deleteSale(id: Long) {

@@ -5,6 +5,7 @@ import com.example.model.StockItem
 import com.example.model.StockStatus
 import com.example.model.SaleRecord
 import com.example.util.parseBrlInputToCents
+import com.example.util.saleReceiptText
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -90,6 +91,33 @@ class PrumoLogicTest {
             initialQuantity = 10L
         )
         assertEquals(2.0, item.turnoverRatio, 0.0001)
+    }
+
+    @Test
+    fun saleReceiptText_includesSaleAndPaymentDetails() {
+        val sale = SaleRecord(
+            id = 42L,
+            description = "Camiseta",
+            clientName = "Ana",
+            sellerName = "Balcão",
+            quantity = 2L,
+            grossAmountCents = 12_590L,
+            costAmountCents = 4_000L,
+            taxPercent = 6.0,
+            commissionPercent = 0.0,
+            saleDateMillis = 1_700_000_000_000L,
+            paymentMethod = "Pix",
+            paymentStatus = "PAID"
+        )
+
+        val receipt = saleReceiptText(sale, "Loja Central")
+
+        org.junit.Assert.assertTrue(receipt.contains("Loja Central"))
+        org.junit.Assert.assertTrue(receipt.contains("Venda: #42"))
+        org.junit.Assert.assertTrue(receipt.contains("Camiseta"))
+        org.junit.Assert.assertTrue(receipt.contains("Quantidade: 2"))
+        org.junit.Assert.assertTrue(receipt.contains("125,90"))
+        org.junit.Assert.assertTrue(receipt.contains("Pix — Recebido"))
     }
 
 }
