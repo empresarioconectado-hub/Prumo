@@ -177,6 +177,7 @@ fun PrumoApp() {
     val appLockEnabled = securitySettings.appLockEnabled
     var hideValues by rememberSaveable { mutableStateOf(false) }
     var isAppUnlocked by remember { mutableStateOf(false) }
+    var isCredentialFallbackInProgress by remember { mutableStateOf(false) }
     var appLockError by remember { mutableStateOf<String?>(null) }
     val keyguardManager = remember(activity) {
         activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
@@ -192,6 +193,7 @@ fun PrumoApp() {
     val deviceCredentialLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        isCredentialFallbackInProgress = false
         if (result.resultCode == Activity.RESULT_OK) {
             isAppUnlocked = true
             appLockError = null
@@ -210,8 +212,14 @@ fun PrumoApp() {
             "Confirme o PIN, padrão ou senha do dispositivo."
         )
         if (intent != null) {
-            deviceCredentialLauncher.launch(intent)
+            isCredentialFallbackInProgress = true
+            runCatching { deviceCredentialLauncher.launch(intent) }
+                .onFailure {
+                    isCredentialFallbackInProgress = false
+                    appLockError = "Não foi possível abrir a confirmação de credencial do Android."
+                }
         } else {
+            isCredentialFallbackInProgress = false
             appLockError = "Configure novamente o bloqueio de tela do Android para acessar o Prumo."
         }
     }
@@ -276,7 +284,7 @@ fun PrumoApp() {
     }
 
     LaunchedEffect(securitySettingsLoaded, appLockEnabled, deviceHasSecureLock) {
-        if (securitySettingsLoaded && appLockEnabled && deviceHasSecureLock && !isAppUnlocked) {
+        if (securitySettingsLoaded && appLockEnabled && deviceHasSecureLock && !isAppUnlocked && !isCredentialFallbackInProgress) {
             requestAppUnlock()
         }
     }
@@ -292,7 +300,7 @@ fun PrumoApp() {
                 }
                 Lifecycle.Event.ON_START -> {
                     deviceHasSecureLock = keyguardManager.isDeviceSecure
-                    if (securitySettingsLoaded && appLockEnabled && deviceHasSecureLock && !isAppUnlocked) {
+                    if (securitySettingsLoaded && appLockEnabled && deviceHasSecureLock && !isAppUnlocked && !isCredentialFallbackInProgress) {
                         appLockError = null
                         requestAppUnlock()
                     }
