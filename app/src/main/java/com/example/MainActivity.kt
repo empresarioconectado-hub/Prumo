@@ -12,7 +12,9 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            PrumoTheme {
+            val settingsFlow = remember { SettingsDataStore(applicationContext).settingsFlow }
+            val settings by settingsFlow.collectAsStateWithLifecycle(initialValue = BusinessSettings())
+            PrumoTheme(themeMode = settings.themeMode) {
                 PrumoApp()
             }
         }
