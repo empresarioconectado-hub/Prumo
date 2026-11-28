@@ -638,6 +638,7 @@ fun PrumoApp() {
                     importBackupLauncher.launch(arrayOf("application/json", "text/json"))
                 },
                 appLockEnabled = appLockEnabled,
+                onThemeModeChange = { mode -> viewModel.setThemeMode(mode) },
                 onOpenPrivacyPolicy = {
                     activeDialog = null
                     activity.startActivity(
