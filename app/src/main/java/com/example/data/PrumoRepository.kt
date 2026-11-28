@@ -146,30 +146,7 @@ class PrumoRepository(
     }
 
     suspend fun clearAllData() {
-        val previousSettings = settingsStore.settingsFlow.first()
-        val previousData = dao.readAllDataSnapshot()
-        try {
-            dao.clearAllDataAtomic()
-            settingsStore.resetDefaults()
-        } catch (clearError: Exception) {
-            try {
-                dao.replaceAllData(
-                    previousData.cashEntries, previousData.stockItems, previousData.sales,
-                    previousData.sellers, previousData.fixedExpenses, previousData.stockMovements
-                )
-                settingsStore.updateSettings(
-                    previousSettings.businessName, previousSettings.initialBalanceCents,
-                    previousSettings.minCashAlertCents, previousSettings.taxRatePercent
-                )
-                settingsStore.setAppLockEnabled(previousSettings.appLockEnabled)
-            } catch (rollbackError: Exception) {
-                clearError.addSuppressed(rollbackError)
-            }
-            throw IllegalStateException(
-                "A limpeza não foi concluída. O aplicativo tentou recuperar os dados anteriores.",
-                clearError
-            )
-        }
+        backupManager.clearAllDataSafely()
     }
 
     suspend fun loadSampleData() {
