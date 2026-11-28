@@ -346,18 +346,26 @@ class PrumoViewModel(
 
     fun saveSettings(businessName: String, initialBalanceCents: Long, minCashAlertCents: Long, taxRatePercent: Double) {
         viewModelScope.launch {
-            repository.updateSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent)
-            _feedbackEvents.tryEmit("Parâmetros atualizados.")
+            try {
+                repository.updateSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent)
+                _feedbackEvents.tryEmit("Parâmetros atualizados.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível atualizar os parâmetros.")
+            }
         }
     }
 
     fun saveCashEntry(entry: CashEntry) {
         viewModelScope.launch {
-            val saved = repository.saveCashEntry(entry)
-            _feedbackEvents.tryEmit(
-                if (!saved) "Este lançamento pertence a uma venda. Edite a venda para manter os dados consistentes."
-                else if (entry.id == 0L) "Lançamento salvo no caixa." else "Lançamento atualizado."
-            )
+            try {
+                val saved = repository.saveCashEntry(entry)
+                _feedbackEvents.tryEmit(
+                    if (!saved) "Este lançamento pertence a uma venda. Edite a venda para manter os dados consistentes."
+                    else if (entry.id == 0L) "Lançamento salvo no caixa." else "Lançamento atualizado."
+                )
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível salvar o lançamento.")
+            }
         }
     }
 
@@ -381,18 +389,26 @@ class PrumoViewModel(
 
     fun saveStockItem(item: StockItem) {
         viewModelScope.launch {
-            repository.saveStockItem(item)
-            _feedbackEvents.tryEmit(if (item.id == 0L) "Produto cadastrado no estoque." else "Produto atualizado.")
+            try {
+                repository.saveStockItem(item)
+                _feedbackEvents.tryEmit(if (item.id == 0L) "Produto cadastrado no estoque." else "Produto atualizado.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível salvar o produto.")
+            }
         }
     }
 
     fun applyStockMovement(item: StockItem, movementType: StockMovementType, units: Long) {
         viewModelScope.launch {
-            val ok = repository.applyStockMovement(item, movementType, units)
-            if (ok) {
-                _feedbackEvents.tryEmit("Estoque atualizado: ${item.sku}.")
-            } else {
-                _feedbackEvents.tryEmit("Saldo insuficiente para a saída em ${item.sku}.")
+            try {
+                val ok = repository.applyStockMovement(item, movementType, units)
+                if (ok) {
+                    _feedbackEvents.tryEmit("Estoque atualizado: ${item.sku}.")
+                } else {
+                    _feedbackEvents.tryEmit("Produto não encontrado no estoque.")
+                }
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível movimentar o estoque.")
             }
         }
     }
@@ -429,8 +445,12 @@ class PrumoViewModel(
 
     fun saveSeller(seller: SellerProfile) {
         viewModelScope.launch {
-            repository.saveSeller(seller)
-            _feedbackEvents.tryEmit(if (seller.id == 0L) "Vendedor cadastrado." else "Meta atualizada.")
+            try {
+                repository.saveSeller(seller)
+                _feedbackEvents.tryEmit(if (seller.id == 0L) "Vendedor cadastrado." else "Meta atualizada.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível salvar o vendedor.")
+            }
         }
     }
 
@@ -443,8 +463,12 @@ class PrumoViewModel(
 
     fun saveFixedExpense(expense: FixedExpense) {
         viewModelScope.launch {
-            repository.saveFixedExpense(expense)
-            _feedbackEvents.tryEmit(if (expense.id == 0L) "Despesa fixa registrada." else "Despesa fixa atualizada.")
+            try {
+                repository.saveFixedExpense(expense)
+                _feedbackEvents.tryEmit(if (expense.id == 0L) "Despesa fixa registrada." else "Despesa fixa atualizada.")
+            } catch (error: Exception) {
+                _feedbackEvents.tryEmit(error.message ?: "Não foi possível salvar a despesa.")
+            }
         }
     }
 

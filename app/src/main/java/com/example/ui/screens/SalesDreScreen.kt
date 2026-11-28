@@ -350,12 +350,12 @@ private fun DreSummaryCard(data: PrumoDashboardData, hideValues: Boolean) {
                 ) {
                     Column {
                         Text(
-                            text = "(=) Lucro Líquido Final",
+                            text = "(=) Resultado Gerencial Estimado",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Margem líquida: ${formatPercent(dre.netProfitPercent)}",
+                            text = "Margem gerencial: ${formatPercent(dre.netProfitPercent)}",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
