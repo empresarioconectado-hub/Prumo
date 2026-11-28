@@ -81,6 +81,7 @@ class PrumoRepository(
         } else {
             val current = dao.stockItemById(item.id)
                 ?: error("Produto não encontrado para edição.")
+            PrumoValidation.stockItem(current)
             val movement = if (current.quantity != item.quantity) StockMovement(
                 stockItemId = item.id, sku = item.sku, productName = item.name,
                 movementType = StockMovementType.ADJUSTMENT.name,

@@ -168,6 +168,7 @@ interface PrumoDao {
             require(units in 1L..PrumoValidation.MAX_STOCK_UNITS) { "A quantidade deve ser maior que zero." }
         }
         val current = stockItemById(itemId) ?: return false
+        PrumoValidation.stockItem(current)
         val updated = when (movementType) {
             StockMovementType.PURCHASE -> current.copy(quantity = Math.addExact(current.quantity, units))
             StockMovementType.SALE -> {
