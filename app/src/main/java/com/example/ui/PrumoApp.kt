@@ -469,7 +469,8 @@ fun PrumoApp() {
                                 onAddItem = { activeDialog = ActiveDialog.StockForm(null) },
                                 onEditItem = { activeDialog = ActiveDialog.StockForm(it) },
                                 onMoveItem = { activeDialog = ActiveDialog.StockMovementForm(it) },
-                                onDeleteItem = viewModel::deleteStockItem
+                                onDeleteItem = viewModel::deleteStockItem,
+                                hideValues = hideValues
                             )
                         }
                         composable(ROUTE_SALES_DRE) {

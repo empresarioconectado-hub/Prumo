@@ -63,6 +63,7 @@ fun StockScreen(
     onEditItem: (StockItem) -> Unit,
     onMoveItem: (StockItem) -> Unit,
     onDeleteItem: (Long) -> Unit,
+    hideValues: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
@@ -110,13 +111,13 @@ fun StockScreen(
                 ) {
                     StockKpiTile(
                         title = "Valor em Estoque (Custo)",
-                        value = formatBrlFromCents(data.totalStockCostCents),
+                        value = privacyMoney(data.totalStockCostCents, hideValues),
                         valueColor = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
                     StockKpiTile(
                         title = "Potencial de Venda",
-                        value = formatBrlFromCents(data.totalStockPotentialSaleCents),
+                        value = privacyMoney(data.totalStockPotentialSaleCents, hideValues),
                         valueColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
@@ -133,7 +134,7 @@ fun StockScreen(
                     )
                     StockKpiTile(
                         title = "Alertas de Reposição",
-                        value = "${data.criticalOrReorderItems.size} (${formatBrlFromCents(data.estimatedRestockCostCents, false)})",
+                        value = "${data.criticalOrReorderItems.size} (${privacyMoney(data.estimatedRestockCostCents, hideValues, false)})",
                         valueColor = if (data.criticalOrReorderItems.isNotEmpty()) PrumoDanger else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
@@ -173,12 +174,12 @@ fun StockScreen(
                             )
                         }
                         Text(
-                            text = "Investimento estimado para repor todos os itens críticos: ${formatBrlFromCents(data.estimatedRestockCostCents)}",
+                            text = "Investimento estimado para repor todos os itens críticos: ${privacyMoney(data.estimatedRestockCostCents, hideValues)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         data.criticalOrReorderItems.forEach { item ->
-                            PurchaseAlertRow(item = item, onBuyClick = { onMoveItem(item) })
+                            PurchaseAlertRow(item = item, hideValues = hideValues, onBuyClick = { onMoveItem(item) })
                         }
                     }
                 }
@@ -208,7 +209,8 @@ fun StockScreen(
                     item = item,
                     onMove = { onMoveItem(item) },
                     onEdit = { onEditItem(item) },
-                    onDelete = { onDeleteItem(item.id) }
+                    onDelete = { onDeleteItem(item.id) },
+                    hideValues = hideValues
                 )
             }
         }
@@ -278,6 +280,7 @@ private fun StockKpiTile(
 @Composable
 private fun PurchaseAlertRow(
     item: StockItem,
+    hideValues: Boolean,
     onBuyClick: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
@@ -324,7 +327,7 @@ private fun PurchaseAlertRow(
                     )
                 }
                 Text(
-                    text = "Saldo: ${item.quantity} ${item.unit} · Sugestão compra: ${item.suggestedPurchaseQty} ${item.unit} (${formatBrlFromCents(item.estimatedPurchaseCostCents)})",
+                    text = "Saldo: ${item.quantity} ${item.unit} · Sugestão compra: ${item.suggestedPurchaseQty} ${item.unit} (${privacyMoney(item.estimatedPurchaseCostCents, hideValues)})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -345,7 +348,8 @@ private fun StockItemCard(
     item: StockItem,
     onMove: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    hideValues: Boolean
 ) {
     val isDark = isSystemInDarkTheme()
     val badgeBg = when (item.status) {
@@ -378,7 +382,7 @@ private fun StockItemCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("${item.sku} · ${item.name}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        text = "${item.category} · Custo ${formatBrlFromCents(item.unitCostCents)} · Venda ${formatBrlFromCents(item.unitPriceCents)}",
+                        text = "${item.category} · Custo ${privacyMoney(item.unitCostCents, hideValues)} · Venda ${privacyMoney(item.unitPriceCents, hideValues)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -457,3 +461,7 @@ private fun StockItemCard(
         }
     }
 }
+
+
+private fun privacyMoney(cents: Long, hidden: Boolean, decimals: Boolean = true): String =
+    if (hidden) "••••••" else formatBrlFromCents(cents, includeDecimals = decimals)
