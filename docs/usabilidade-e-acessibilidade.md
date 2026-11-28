@@ -55,8 +55,8 @@ As funcionalidades abaixo são candidatas de evolução e não devem ser anuncia
 5. **Compras e reposição:** pedido de compra, fornecedor, custo de aquisição e entrada de estoque.
 6. **Inventário:** contagem física, divergências e ajuste auditável.
 7. **Relatórios comparativos:** mês contra mês, margem por produto, despesas por categoria e evolução do caixa.
-8. **Segurança de acesso:** bloqueio local com biometria/PIN, timeout e proteção de conteúdo sensível.
-9. **Backup protegido:** criptografia autenticada, validação de integridade e fluxo de recuperação testado.
+8. **Política de sessão:** permitir configurar o tempo de bloqueio automático e validar reautenticação em cenários de interrupção; o bloqueio opcional por biometria/credencial e a proteção contra captura já estão implementados.
+9. **Recuperação de backup:** concluir testes de restauração, recuperação após encerramento abrupto e comunicação de perda de senha; a criptografia autenticada e a validação estrutural já estão implementadas.
 10. **Sincronização opcional:** somente após definir autenticação, isolamento por negócio, conflitos, criptografia em trânsito e em repouso e política de retenção.
 
 ## Critério de aceite de UX
