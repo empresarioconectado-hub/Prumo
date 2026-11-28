@@ -87,7 +87,7 @@ Para cada versão distribuída:
 
 ## Validação automatizada
 
-O workflow atual executa testes unitários, Android Lint, build debug e testes instrumentados em emulador. Um job separado e manual gera o AAB assinado somente quando solicitado e quando as secrets de assinatura estiverem configuradas.
+O workflow atual executa testes unitários, Android Lint, build debug e testes instrumentados em emulador. Um workflow CodeQL analisa Kotlin/Java e o Dependabot monitora atualizações de dependências. Um job separado e manual gera o AAB assinado somente quando solicitado e quando as secrets de assinatura estiverem configuradas.
 
 ## Checklist de publicação
 

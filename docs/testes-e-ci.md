@@ -94,3 +94,10 @@ O workflow `.github/workflows/build-apk.yml` executa:
 5. testes instrumentados em emulador Android.
 
 A aprovação do pipeline comprova somente os cenários automatizados executados. Não substitui testes exploratórios, testes em aparelhos físicos, revisão de segurança ou validação de release assinado.
+
+
+## Segurança da cadeia de dependências
+
+- Dependabot verifica semanalmente atualizações de Gradle e GitHub Actions.
+- CodeQL analisa o código Kotlin/Java em Pull Requests, na branch principal e em agenda semanal.
+- A revisão de dependências removeu aliases e integrações Firebase que não eram utilizadas pelo aplicativo Android.

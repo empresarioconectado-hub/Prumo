@@ -1,6 +1,6 @@
 # Termos de Uso — Prumo Gestão
 
-**Última atualização: 27 de novembro de 2026**
+**Última atualização: 28 de novembro de 2026**
 
 Estes termos descrevem as condições gerais de utilização do Prumo Gestão, aplicativo Android destinado ao apoio à organização financeira e operacional de pequenos negócios.
 

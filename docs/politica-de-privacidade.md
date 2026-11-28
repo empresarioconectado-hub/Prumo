@@ -1,6 +1,6 @@
 # Política de Privacidade — Prumo Gestão
 
-**Última atualização: 27 de novembro de 2026**
+**Última atualização: 28 de novembro de 2026**
 
 Esta política descreve o tratamento de informações na versão Android do Prumo Gestão, aplicativo de organização financeira e operacional para pequenos negócios.
 
