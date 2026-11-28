@@ -75,6 +75,32 @@ class PrumoBackupManager(
         recoverPendingRestoreInternal()
     }
 
+    suspend fun clearAllDataSafely() = withContext(Dispatchers.IO) {
+        val previousSettings = settingsStore.settingsFlow.first()
+        val previousData = dao.readAllDataSnapshot()
+        val journal = JSONObject(serializeBackup(previousSettings, previousData))
+        journal.getJSONObject("settings")
+            .put("rollbackAppLockEnabled", previousSettings.appLockEnabled)
+            .put("rollbackThemeMode", previousSettings.themeMode)
+        writeRollbackJournal(journal.toString(2))
+
+        try {
+            dao.clearAllDataAtomic()
+            settingsStore.resetDefaults()
+            deleteRollbackJournal()
+        } catch (clearError: Exception) {
+            try {
+                recoverPendingRestoreInternal()
+            } catch (rollbackError: Exception) {
+                clearError.addSuppressed(rollbackError)
+            }
+            throw IllegalStateException(
+                "A limpeza não foi concluída. O aplicativo tentou recuperar os dados anteriores.",
+                clearError
+            )
+        }
+    }
+
     private suspend fun recoverPendingRestoreInternal() {
         if (!hasRollbackJournal()) return
 
