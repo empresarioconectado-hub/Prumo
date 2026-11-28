@@ -1,6 +1,8 @@
 package com.example.ui
 
 import android.app.Application
+import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.ContextWrapper
@@ -297,8 +299,21 @@ fun PrumoApp() {
     ) { uri ->
         if (uri != null) coroutineScope.launch {
             try {
-                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                    ?: error("Não foi possível ler o arquivo selecionado.")
+                val input = context.contentResolver.openInputStream(uri)
+                    ?: error("Não foi possível abrir o arquivo selecionado.")
+                val json = input.use { stream ->
+                    val output = ByteArrayOutputStream()
+                    val buffer = ByteArray(8_192)
+                    var totalBytes = 0
+                    while (true) {
+                        val count = stream.read(buffer)
+                        if (count < 0) break
+                        totalBytes += count
+                        require(totalBytes <= 20_000_000) { "O arquivo de backup excede o tamanho permitido." }
+                        output.write(buffer, 0, count)
+                    }
+                    String(output.toByteArray(), StandardCharsets.UTF_8)
+                }
                 pendingBackupImportJson = json
                 backupPassword = ""
                 showBackupImportPasswordDialog = true
