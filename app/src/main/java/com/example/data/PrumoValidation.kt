@@ -31,7 +31,9 @@ internal object PrumoValidation {
     }
 
     fun stockItem(item: StockItem) {
-        require(item.sku.isNotBlank() && item.sku.length <= 40) { "Informe um SKU de até 40 caracteres." }
+        require(item.sku.isNotBlank() && item.sku == item.sku.trim() && item.sku.length <= 40) {
+            "Informe um SKU válido de até 40 caracteres, sem espaços no início ou no fim."
+        }
         require(item.name.isNotBlank() && item.name.length <= 120) { "Informe o nome do produto." }
         require(item.category.isNotBlank() && item.unit.isNotBlank()) { "Categoria e unidade são obrigatórias." }
         require(item.quantity in 0L..MAX_STOCK_UNITS && item.initialQuantity in 0L..MAX_STOCK_UNITS &&

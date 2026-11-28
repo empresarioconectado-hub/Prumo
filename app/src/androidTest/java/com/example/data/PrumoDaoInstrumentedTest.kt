@@ -71,6 +71,22 @@ class PrumoDaoInstrumentedTest {
     }
 
     @Test
+    fun clearAllDataAtomicRemovesInventoryAndMovementHistoryTogether() = runBlocking {
+        val id = createItem(10L)
+        dao.applyStockMovementAtomic(id, StockMovementType.PURCHASE, 2L)
+
+        dao.clearAllDataAtomic()
+
+        val snapshot = dao.readAllDataSnapshot()
+        assertEquals(0, snapshot.stockItems.size)
+        assertEquals(0, snapshot.stockMovements.size)
+        assertEquals(0, snapshot.cashEntries.size)
+        assertEquals(0, snapshot.sales.size)
+        assertEquals(0, snapshot.sellers.size)
+        assertEquals(0, snapshot.fixedExpenses.size)
+    }
+
+    @Test
     fun purchaseOverflowDoesNotChangeBalanceOrCreateMovement() = runBlocking {
         val id = createItem(Long.MAX_VALUE)
 
