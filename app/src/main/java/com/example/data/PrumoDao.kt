@@ -33,6 +33,7 @@ interface PrumoDao {
     @Query("SELECT * FROM stock_items ORDER BY name ASC") fun observeStockItems(): Flow<List<StockItem>>
     @Query("SELECT * FROM stock_items") suspend fun allStockItems(): List<StockItem>
     @Query("SELECT * FROM stock_items WHERE id = :id LIMIT 1") suspend fun stockItemById(id: Long): StockItem?
+    @Query("SELECT COUNT(*) FROM stock_items WHERE sku = :sku COLLATE NOCASE AND id != :excludeId") suspend fun countStockItemsWithSku(sku: String, excludeId: Long): Int
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockItem(item: StockItem): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStockItems(items: List<StockItem>)
     @Update suspend fun updateStockItem(item: StockItem)
@@ -115,6 +116,7 @@ interface PrumoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSellers(sellers: List<SellerProfile>)
     @Query("SELECT * FROM seller_profiles ORDER BY name ASC") fun observeSellers(): Flow<List<SellerProfile>>
     @Query("SELECT * FROM seller_profiles") suspend fun allSellers(): List<SellerProfile>
+    @Query("SELECT * FROM seller_profiles WHERE id = :id LIMIT 1") suspend fun sellerById(id: Long): SellerProfile?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertSeller(seller: SellerProfile): Long
     @Update suspend fun updateSeller(seller: SellerProfile)
     @Query("DELETE FROM seller_profiles WHERE id = :id") suspend fun deleteSellerById(id: Long)
@@ -123,6 +125,7 @@ interface PrumoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertFixedExpenses(expenses: List<FixedExpense>)
     @Query("SELECT * FROM fixed_expenses ORDER BY dateMillis DESC, id DESC") fun observeFixedExpenses(): Flow<List<FixedExpense>>
     @Query("SELECT * FROM fixed_expenses") suspend fun allFixedExpenses(): List<FixedExpense>
+    @Query("SELECT * FROM fixed_expenses WHERE id = :id LIMIT 1") suspend fun fixedExpenseById(id: Long): FixedExpense?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertFixedExpense(expense: FixedExpense): Long
     @Update suspend fun updateFixedExpense(expense: FixedExpense)
     @Query("DELETE FROM fixed_expenses WHERE id = :id") suspend fun deleteFixedExpenseById(id: Long)

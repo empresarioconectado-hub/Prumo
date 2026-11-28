@@ -295,6 +295,11 @@ private fun DreSummaryCard(data: PrumoDashboardData, hideValues: Boolean) {
                 fontWeight = FontWeight.Bold
             )
             Text(
+                text = "Resultado estimado com base nas vendas e despesas fixas cadastradas. Não representa lucro líquido contábil; não duplique despesas nesta aba e no caixa.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
                 text = "Alíquota padrão configurada: ${formatPercent(data.settings.taxRatePercent)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

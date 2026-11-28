@@ -64,6 +64,7 @@ class PrumoRepository(
 
     suspend fun saveStockItem(item: StockItem) {
         PrumoValidation.stockItem(item)
+        require(dao.countStockItemsWithSku(item.sku.trim(), item.id) == 0) { "Já existe um produto cadastrado com este SKU." }
         if (item.id == 0L) {
             val openingMovement = if (item.quantity > 0L) StockMovement(
                 stockItemId = 0L, sku = item.sku, productName = item.name,
@@ -110,6 +111,7 @@ class PrumoRepository(
         if (seller.id == 0L) {
             dao.insertSeller(seller)
         } else {
+            require(dao.sellerById(seller.id) != null) { "Vendedor não encontrado para edição." }
             dao.updateSeller(seller)
         }
     }
@@ -123,6 +125,7 @@ class PrumoRepository(
         if (expense.id == 0L) {
             dao.insertFixedExpense(expense)
         } else {
+            require(dao.fixedExpenseById(expense.id) != null) { "Despesa fixa não encontrada para edição." }
             dao.updateFixedExpense(expense)
         }
     }
