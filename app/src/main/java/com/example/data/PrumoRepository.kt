@@ -12,6 +12,7 @@ import com.example.model.StockMovementType
 import com.example.model.StockMovement
 import java.util.Calendar
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 class PrumoRepository(
     private val dao: PrumoDao,
@@ -139,9 +140,30 @@ class PrumoRepository(
     }
 
     suspend fun clearAllData() {
-        // Room changes are committed together; settings are reset only after the DB transaction succeeds.
-        dao.clearAllDataAtomic()
-        settingsStore.resetDefaults()
+        val previousSettings = settingsStore.settingsFlow.first()
+        val previousData = dao.readAllDataSnapshot()
+        try {
+            dao.clearAllDataAtomic()
+            settingsStore.resetDefaults()
+        } catch (clearError: Exception) {
+            try {
+                dao.replaceAllData(
+                    previousData.cashEntries, previousData.stockItems, previousData.sales,
+                    previousData.sellers, previousData.fixedExpenses, previousData.stockMovements
+                )
+                settingsStore.updateSettings(
+                    previousSettings.businessName, previousSettings.initialBalanceCents,
+                    previousSettings.minCashAlertCents, previousSettings.taxRatePercent
+                )
+                settingsStore.setAppLockEnabled(previousSettings.appLockEnabled)
+            } catch (rollbackError: Exception) {
+                clearError.addSuppressed(rollbackError)
+            }
+            throw IllegalStateException(
+                "A limpeza não foi concluída. O aplicativo tentou recuperar os dados anteriores.",
+                clearError
+            )
+        }
     }
 
     suspend fun loadSampleData() {

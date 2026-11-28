@@ -59,7 +59,6 @@ class SettingsDataStore(private val context: Context) {
             prefs[Keys.INITIAL_BALANCE_CENTS] = 0L
             prefs[Keys.MIN_CASH_ALERT_CENTS] = 500_000L
             prefs[Keys.TAX_RATE_PERCENT] = 6.0
-            prefs[Keys.APP_LOCK_ENABLED] = false
         }
     }
 }
