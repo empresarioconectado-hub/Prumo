@@ -9,6 +9,7 @@ import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings as AndroidSettings
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.biometric.BiometricManager
@@ -163,12 +164,17 @@ fun PrumoApp() {
     var securitySettingsLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(securitySettingsFlow) {
         securitySettingsFlow.first()
+        deviceHasSecureLock = keyguardManager.isDeviceSecure
         securitySettingsLoaded = true
     }
     val appLockEnabled = securitySettings.appLockEnabled
     var hideValues by rememberSaveable { mutableStateOf(false) }
     var isAppUnlocked by remember { mutableStateOf(false) }
     var appLockError by remember { mutableStateOf<String?>(null) }
+    val keyguardManager = remember(activity) {
+        activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+    }
+    var deviceHasSecureLock by remember { mutableStateOf(false) }
 
     val biometricPrompt = remember(activity) {
         BiometricPrompt(
@@ -217,7 +223,8 @@ fun PrumoApp() {
                     }
                 }
                 Lifecycle.Event.ON_START -> {
-                    if (securitySettingsLoaded && appLockEnabled && !isAppUnlocked) {
+                    deviceHasSecureLock = keyguardManager.isDeviceSecure
+                    if (securitySettingsLoaded && appLockEnabled && deviceHasSecureLock && !isAppUnlocked) {
                         appLockError = null
                         requestAppUnlock()
                     }
@@ -637,8 +644,7 @@ fun PrumoApp() {
                     )
                 },
                 onToggleAppLock = { enabled ->
-                    val keyguard = activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-                    if (enabled && !keyguard.isDeviceSecure) {
+                    if (enabled && !keyguardManager.isDeviceSecure) {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Configure um PIN, padrão ou senha de bloqueio no Android antes de ativar a proteção do Prumo.")
                         }
@@ -777,7 +783,8 @@ fun PrumoApp() {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    if (securitySettingsLoaded) "Use a biometria ou a credencial de bloqueio do dispositivo para acessar os dados financeiros."
+                    if (deviceHasSecureLock) "Use a biometria ou a credencial de bloqueio do dispositivo para acessar os dados financeiros."
+                    else "Configure um PIN, padrão ou senha nas configurações do Android para proteger o Prumo."
                     else "Aguarde enquanto as configurações de segurança são carregadas.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

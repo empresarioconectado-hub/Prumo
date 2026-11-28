@@ -1051,7 +1051,7 @@ fun BusinessSettingsDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Bloquear acesso ao Prumo", style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "Usa biometria ou o PIN/senha de bloqueio do Android.",
+                            "Usa biometria ou PIN, padrão ou senha de bloqueio do Android.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1065,7 +1065,7 @@ fun BusinessSettingsDialog(
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text("Documentos", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column {
                     TextButton(onClick = onOpenPrivacyPolicy) { Text("Política de Privacidade") }
                     TextButton(onClick = onOpenTerms) { Text("Termos de Uso") }
                 }
