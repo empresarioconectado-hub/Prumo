@@ -295,7 +295,7 @@ private fun DreSummaryCard(data: PrumoDashboardData, hideValues: Boolean) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Resultado estimado com base nas vendas e despesas fixas cadastradas. Não representa lucro líquido contábil; não duplique despesas nesta aba e no caixa.",
+                text = "Resultado gerencial estimado com base nas vendas e despesas fixas cadastradas. Não representa lucro líquido contábil. Os lançamentos do caixa são independentes e não são sincronizados automaticamente com esta lista.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
