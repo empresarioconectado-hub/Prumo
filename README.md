@@ -34,6 +34,8 @@ O aplicativo é uma ferramenta de gestão gerencial. Não substitui ERP fiscal, 
 | **Relatórios** | Exportação da DRE gerencial em PDF e dos lançamentos mensais de caixa em CSV. |
 | **Backup** | Exportação e restauração manual dos dados em arquivo JSON versionado. |
 
+Na primeira utilização, o usuário pode iniciar com registros próprios ou carregar dados demonstrativos fictícios. A demonstração só é inserida em uma base sem registros e não substitui dados existentes nem configurações já informadas.
+
 A disponibilidade de cada recurso deve ser conferida na versão instalada. Funcionalidades em planejamento não são consideradas parte da versão atual.
 
 ## Tecnologias
