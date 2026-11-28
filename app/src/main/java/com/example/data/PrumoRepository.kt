@@ -37,12 +37,17 @@ class PrumoRepository(
         minCashAlertCents: Long,
         taxRatePercent: Double
     ) {
+        PrumoValidation.settings(BusinessSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent))
         settingsStore.updateSettings(businessName, initialBalanceCents, minCashAlertCents, taxRatePercent)
     }
 
     suspend fun saveCashEntry(entry: CashEntry): Boolean {
         if (entry.saleId != null) return false
-        if (entry.id == 0L) dao.insertCashEntry(entry) else dao.updateCashEntry(entry)
+        PrumoValidation.cashEntry(entry)
+        if (entry.id == 0L) dao.insertCashEntry(entry) else {
+            require(dao.cashEntryById(entry.id) != null) { "Lançamento não encontrado para edição." }
+            dao.updateCashEntry(entry)
+        }
         return true
     }
 
@@ -58,6 +63,7 @@ class PrumoRepository(
     }
 
     suspend fun saveStockItem(item: StockItem) {
+        PrumoValidation.stockItem(item)
         if (item.id == 0L) {
             val openingMovement = if (item.quantity > 0L) StockMovement(
                 stockItemId = 0L, sku = item.sku, productName = item.name,
@@ -68,7 +74,8 @@ class PrumoRepository(
             dao.insertStockItemWithOpeningMovement(item, openingMovement)
         } else {
             val current = dao.stockItemById(item.id)
-            val movement = if (current != null && current.quantity != item.quantity) StockMovement(
+                ?: error("Produto não encontrado para edição.")
+            val movement = if (current.quantity != item.quantity) StockMovement(
                 stockItemId = item.id, sku = item.sku, productName = item.name,
                 movementType = StockMovementType.ADJUSTMENT.name,
                 quantity = kotlin.math.abs(item.quantity - current.quantity),
@@ -90,6 +97,7 @@ class PrumoRepository(
     }
 
     suspend fun saveSale(sale: SaleRecord) {
+        PrumoValidation.sale(sale)
         dao.saveSaleAtomic(sale)
     }
 
@@ -98,6 +106,7 @@ class PrumoRepository(
     }
 
     suspend fun saveSeller(seller: SellerProfile) {
+        PrumoValidation.seller(seller)
         if (seller.id == 0L) {
             dao.insertSeller(seller)
         } else {
@@ -110,6 +119,7 @@ class PrumoRepository(
     }
 
     suspend fun saveFixedExpense(expense: FixedExpense) {
+        PrumoValidation.fixedExpense(expense)
         if (expense.id == 0L) {
             dao.insertFixedExpense(expense)
         } else {
