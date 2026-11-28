@@ -124,6 +124,20 @@ jobs:
           "/tmp/gradle-${GRADLE_VERSION}/bin/gradle" wrapper --gradle-version "${GRADLE_VERSION}" --distribution-type bin
           chmod +x ./gradlew
 
+      - name: Generate debug signing keystore
+        run: |
+          if [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Run instrumented tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
