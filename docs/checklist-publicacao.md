@@ -32,8 +32,6 @@ Este documento é o gate de release. Marque cada item somente após existir evid
 - [ ] Backup criptografado exportado e restaurado em instalação limpa.
 - [ ] Senha incorreta rejeitada e perda de senha comunicada ao usuário.
 - [ ] Backup legado sem criptografia importado e reexportado no novo formato.
-- [ ] Senha incorreta rejeitada e perda de senha comunicada ao usuário.
-- [ ] Backup legado sem criptografia importado e reexportado no novo formato.
 - [ ] Backup inválido, truncado, grande e com referências inconsistentes rejeitado.
 - [ ] Falha durante restauração não deixa estado parcial.
 - [ ] Exportação e restauração preservam todos os campos.
@@ -96,6 +94,6 @@ Este documento é o gate de release. Marque cada item somente após existir evid
 - Não há comprovação de testes em dispositivos físicos nesta revisão.
 - Não há evidência de AAB release assinado por chave de produção.
 - Política de Privacidade e Termos exigem validação do responsável e canal de contato público real.
-- Bloqueio biométrico/PIN e proteção de tela sensível ainda precisam de decisão e implementação.
+- Bloqueio biométrico/credencial e proteção de tela já estão implementados no código, mas ainda precisam de validação em dispositivos reais.
 
 **Status:** não declarar publicação liberada enquanto qualquer bloqueio obrigatório estiver pendente.
