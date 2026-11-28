@@ -83,7 +83,7 @@ internal object PrumoBackupCrypto {
             SecretKeyFactory.getInstance(algorithm).generateSecret(spec).encoded
         } finally {
             spec.clearPassword()
-            passwordChars.fill('\\u0000')
+            passwordChars.fill(0.toChar())
         }
     }
 }
