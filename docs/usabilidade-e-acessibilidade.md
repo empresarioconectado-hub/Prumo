@@ -2,7 +2,7 @@
 
 ## Direção visual
 
-O Prumo utiliza Jetpack Compose com Material 3 e uma identidade visual baseada em tons de verde, superfícies neutras e tipografia própria. Há esquemas claro e escuro, com seleção automática conforme a configuração do sistema.
+O Prumo utiliza Jetpack Compose com Material 3 e uma identidade visual baseada em tons de verde, superfícies neutras e tipografia própria. O usuário pode escolher entre tema claro, escuro ou automático, seguindo a configuração do Android.
 
 A interface deve priorizar leitura rápida, hierarquia de informação e consistência entre os módulos. Valores financeiros precisam ter destaque sem competir com alertas, estados e ações primárias.
 
@@ -12,6 +12,7 @@ A interface deve priorizar leitura rápida, hierarquia de informação e consist
 - Reservar vermelho para saídas, erros e situações críticas; verde para entradas e estados positivos; amarelo/âmbar para atenção.
 - Não comunicar status somente pela cor: sempre exibir rótulo ou ícone com descrição acessível.
 - Manter escala tipográfica consistente e permitir ampliação de fonte do sistema.
+- Respeitar a preferência de aparência escolhida e validar contraste nos três modos de seleção.
 - Usar alvos de toque com dimensão mínima recomendada de 48 dp.
 - Manter espaçamento, raio de borda, elevação e estados de foco consistentes.
 - Evitar excesso de cartões, bordas e informações repetidas em uma mesma tela.
