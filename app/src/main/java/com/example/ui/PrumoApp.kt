@@ -84,6 +84,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.data.PrumoDatabase
 import com.example.data.PrumoRepository
 import com.example.data.SettingsDataStore
+import com.example.model.BusinessSettings
 import com.example.model.CashEntry
 import com.example.model.CashEntryType
 import com.example.model.FixedExpense
@@ -105,6 +106,7 @@ import com.example.ui.screens.StockScreen
 import com.example.ui.viewmodel.PrumoViewModel
 import com.example.util.PrumoReportExporter
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 private const val ROUTE_OVERVIEW = "overview"
 private const val ROUTE_CASH = "cash_flow"
@@ -150,6 +152,16 @@ fun PrumoApp() {
     )
 
     val dashboardData by viewModel.dashboardState.collectAsStateWithLifecycle()
+    val securitySettingsFlow = remember(context) { SettingsDataStore(context).settingsFlow }
+    val securitySettings by securitySettingsFlow.collectAsStateWithLifecycle(
+        initialValue = BusinessSettings(appLockEnabled = true)
+    )
+    var securitySettingsLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(securitySettingsFlow) {
+        securitySettingsFlow.first()
+        securitySettingsLoaded = true
+    }
+    val appLockEnabled = securitySettings.appLockEnabled
 
     val biometricPrompt = remember(activity) {
         BiometricPrompt(
@@ -189,16 +201,16 @@ fun PrumoApp() {
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, dashboardData.settings.appLockEnabled, biometricPrompt) {
+    DisposableEffect(lifecycleOwner, appLockEnabled, securitySettingsLoaded, biometricPrompt) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
-                    if (dashboardData.settings.appLockEnabled) {
+                    if (securitySettingsLoaded && appLockEnabled) {
                         isAppUnlocked = false
                     }
                 }
                 Lifecycle.Event.ON_START -> {
-                    if (dashboardData.settings.appLockEnabled && !isAppUnlocked) {
+                    if (securitySettingsLoaded && appLockEnabled && !isAppUnlocked) {
                         appLockError = null
                         requestAppUnlock()
                     }
@@ -211,7 +223,7 @@ fun PrumoApp() {
     }
 
     SideEffect {
-        if (dashboardData.settings.appLockEnabled) {
+        if (!securitySettingsLoaded || appLockEnabled) {
             activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         } else {
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -594,7 +606,7 @@ fun PrumoApp() {
                     activeDialog = null
                     importBackupLauncher.launch(arrayOf("application/json", "text/json"))
                 },
-                appLockEnabled = dashboardData.settings.appLockEnabled,
+                appLockEnabled = appLockEnabled,
                 onToggleAppLock = { enabled ->
                     val keyguard = activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
                     if (enabled && !keyguard.isDeviceSecure) {
@@ -719,7 +731,7 @@ fun PrumoApp() {
         )
     }
 
-    if (dashboardData.settings.appLockEnabled && !isAppUnlocked) {
+    if (!securitySettingsLoaded || (appLockEnabled && !isAppUnlocked)) {
         androidx.compose.material3.Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
@@ -730,9 +742,14 @@ fun PrumoApp() {
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
             ) {
                 Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.padding(bottom = 12.dp))
-                Text("Prumo bloqueado", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(
-                    "Use a biometria ou a credencial de bloqueio do dispositivo para acessar os dados financeiros.",
+                    if (securitySettingsLoaded) "Prumo bloqueado" else "Preparando proteção",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    if (securitySettingsLoaded) "Use a biometria ou a credencial de bloqueio do dispositivo para acessar os dados financeiros."
+                    else "Aguarde enquanto as configurações de segurança são carregadas.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -744,8 +761,10 @@ fun PrumoApp() {
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                Button(onClick = { requestAppUnlock() }, modifier = Modifier.padding(top = 16.dp)) {
-                    Text("Desbloquear")
+                if (securitySettingsLoaded) {
+                    Button(onClick = { requestAppUnlock() }, modifier = Modifier.padding(top = 16.dp)) {
+                        Text("Desbloquear")
+                    }
                 }
             }
         }
