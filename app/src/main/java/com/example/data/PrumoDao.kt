@@ -189,7 +189,7 @@ private suspend fun PrumoDao.reverseSaleStock(sale: SaleRecord) {
     val stockId = sale.stockItemId ?: return
     val item = stockItemById(stockId) ?: return
     updateStockItem(item.copy(
-        quantity = item.quantity + sale.quantity,
+        quantity = Math.addExact(item.quantity, sale.quantity),
         soldUnitsCount = (item.soldUnitsCount - sale.quantity).coerceAtLeast(0L)
     ))
     insertStockMovement(StockMovement(

@@ -78,6 +78,7 @@ class PrumoBackupManager(
         require(sellers.all { it.id > 0L && it.name.isNotBlank() && it.monthlyGoalCents >= 0L &&
             it.commissionPercent.isFinite() && it.commissionPercent in 0.0..100.0 }) { "Backup contém vendedores inválidos." }
         require(movements.all { it.id > 0L && it.stockItemId > 0L && it.quantity > 0L &&
+            it.movementType in setOf("PURCHASE", "SALE", "LOSS", "ADJUSTMENT") &&
             it.unitCostCents >= 0L && it.dateMillis > 0L }) { "Backup contém movimentações inválidas." }
         require(cash.map { it.id }.distinct().size == cash.size &&
             stock.map { it.id }.distinct().size == stock.size &&
