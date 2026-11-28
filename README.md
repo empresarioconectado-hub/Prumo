@@ -1,176 +1,150 @@
 # Prumo Gestão
 
-Aplicativo Android para organização financeira e operacional de pequenos negócios. O Prumo reúne o acompanhamento de caixa, vendas, estoque e indicadores gerenciais em uma interface única, com armazenamento local e recursos de exportação e backup.
+Aplicativo Android de gestão financeira e operacional para pequenos negócios. O Prumo reúne fluxo de caixa, vendas, estoque, despesas, metas comerciais e indicadores gerenciais em uma experiência local-first.
 
 <p align="center">
-  <strong>Controle financeiro e operacional com informações organizadas em um só lugar.</strong>
+  <strong>Clareza financeira para decisões melhores no dia a dia.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/empresarioconectado-hub/Prumo/actions/workflows/build-apk.yml"><img src="https://github.com/empresarioconectado-hub/Prumo/actions/workflows/build-apk.yml/badge.svg?branch=main" alt="Android Build and Tests"></a>
-  <img src="https://img.shields.io/badge/Plataforma-Android-3DDC84?logo=android&logoColor=white" alt="Android">
-  <img src="https://img.shields.io/badge/Linguagem-Kotlin-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin">
-  <img src="https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose">
+  <img src="https://img.shields.io/badge/Android-API%2024%2B-3DDC84?logo=android&logoColor=white" alt="Android API 24 ou superior">
+  <img src="https://img.shields.io/badge/Kotlin-Compose-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin e Jetpack Compose">
+  <img src="https://img.shields.io/badge/Armazenamento-Local-2563EB" alt="Armazenamento local">
 </p>
 
-## Visão geral
+## Sobre o produto
 
-O Prumo foi desenvolvido para apoiar a rotina de pequenos negócios que precisam acompanhar entradas e saídas, registrar vendas, controlar produtos e entender o resultado operacional. Os dados de trabalho são mantidos no próprio dispositivo Android.
+O Prumo foi concebido para micro e pequenos negócios que precisam registrar movimentações, acompanhar compromissos financeiros, controlar produtos e visualizar resultados sem depender de uma plataforma de gestão remota.
 
-O aplicativo é uma ferramenta de gestão gerencial. Não substitui ERP fiscal, sistema contábil, emissão de documentos fiscais ou orientação profissional.
+A versão atual utiliza armazenamento local no dispositivo. O aplicativo não oferece integração bancária, sincronização multiusuário ou emissão fiscal. Seus relatórios são gerenciais e não substituem escrituração contábil, ERP fiscal ou orientação profissional.
 
-## Funcionalidades
+## Funcionalidades implementadas
 
-| Área | Recursos disponíveis |
+| Módulo | Recursos |
 | --- | --- |
-| **Início** | Visão consolidada dos principais indicadores financeiros e operacionais. |
-| **Caixa** | Registro de entradas e saídas, contas, categorias, formas de pagamento e situação dos lançamentos; acompanhamento de saldo e projeção de caixa. |
-| **Estoque** | Cadastro de produtos, saldo, custo, preço, estoque mínimo, ponto de reposição e histórico de movimentações. |
-| **Vendas** | Registro de vendas, cliente, vendedor, quantidade, receita, custo, impostos e comissão; integração da venda com caixa e estoque. |
-| **DRE gerencial** | Indicadores de receita, custos, margem de contribuição, despesas e resultado gerencial. |
-| **Equipe** | Cadastro de vendedores, metas e percentuais de comissão. |
-| **Despesas fixas** | Registro e acompanhamento de despesas por categoria. |
-| **Privacidade visual** | Opção para ocultar valores monetários nas telas compatíveis. |
-| **Relatórios** | Exportação da DRE gerencial em PDF e dos lançamentos mensais de caixa em CSV. |
-| **Backup** | Exportação e restauração manual dos dados em arquivo JSON versionado. |
+| Início | Indicadores consolidados, alertas de caixa e estoque, visão mensal e projeção de caixa. |
+| Caixa | Entradas e saídas, categorias, contas, meios de pagamento, situação de pagamento, filtros e histórico mensal. |
+| Estoque | Produtos, custo, preço, saldo, estoque mínimo, ponto de reposição, sugestão de compra e histórico de movimentações. |
+| Vendas | Cliente, vendedor, quantidade, receita, custo, impostos, comissão e situação do recebimento. |
+| Integração da venda | Uma venda atualiza o estoque, o histórico de movimentações e o lançamento vinculado no caixa dentro de uma transação Room. |
+| DRE gerencial | Receita bruta e líquida, tributos estimados, CMV, comissões, margem de contribuição, despesas fixas e resultado operacional gerencial. |
+| Equipe | Cadastro de vendedores, metas mensais, comissões e ranking de vendas. |
+| Despesas fixas | Lançamentos classificados por categoria para análise mensal. |
+| Privacidade visual | Ocultação de valores monetários nas telas compatíveis. |
+| Relatórios | Exportação de DRE gerencial em PDF e lançamentos do caixa em CSV. |
+| Backup | Exportação e restauração manual de arquivo JSON versionado. |
 
-A disponibilidade de cada recurso deve ser conferida na versão instalada. Funcionalidades em planejamento não são consideradas parte da versão atual.
+A lista descreve recursos presentes no código. Itens como integração bancária, sincronização em nuvem, cobrança automática, emissão fiscal, leitura de código de barras, anexos de comprovantes e autenticação biométrica não devem ser considerados disponíveis nesta versão.
 
 ## Tecnologias
 
-- **Kotlin** — linguagem principal.
-- **Jetpack Compose e Material 3** — interface declarativa.
-- **Room** — persistência relacional local.
-- **Preferences DataStore** — armazenamento das configurações do negócio.
-- **Kotlin Coroutines e Flow** — operações assíncronas e observação de dados.
-- **AndroidX Lifecycle e ViewModel** — estado e ciclo de vida da interface.
-- **Gradle Kotlin DSL** — configuração e automação de build.
-- **JUnit e Robolectric** — testes automatizados.
+- Kotlin e Android Gradle Plugin.
+- Jetpack Compose e Material 3.
+- Room para persistência relacional local.
+- Preferences DataStore para preferências do negócio.
+- Kotlin Coroutines, Flow e AndroidX Lifecycle.
+- JUnit e Robolectric para testes locais.
+- GitHub Actions para automação de testes, análise estática e build de depuração.
 
-Versões e dependências estão centralizadas em [gradle/libs.versions.toml](gradle/libs.versions.toml).
+As versões estão centralizadas em [gradle/libs.versions.toml](gradle/libs.versions.toml).
 
-## Requisitos
+## Requisitos de desenvolvimento
 
-| Item | Configuração |
+| Item | Configuração do projeto |
 | --- | --- |
 | Plataforma | Android |
 | Versão mínima | Android 7.0 (API 24) |
-| SDK de compilação | API 36 |
-| Java para o ambiente de CI | JDK 21 |
-| Sistema de build | Gradle 9.3.1 |
-| Identificador do aplicativo | `br.com.prumoplanilhas.gestao` |
+| Compile SDK | API 36 |
+| Target SDK | API 36 |
+| JDK do CI | 21 |
+| Gradle | Conforme `gradle/wrapper/gradle-wrapper.properties` |
+| Application ID | `br.com.prumoplanilhas.gestao` |
+| Namespace | `com.example` |
 
-Para desenvolvimento, utilize Android Studio compatível com o Android Gradle Plugin e com o SDK configurado no projeto.
+Utilize Android Studio e Android SDK compatíveis com as versões configuradas no projeto.
 
-## Como obter o código
+## Obter o código
 
 ```bash
 git clone https://github.com/empresarioconectado-hub/Prumo.git
 cd Prumo
 ```
 
-## Preparação do ambiente
+O repositório mantém a configuração do Gradle Wrapper. Caso os scripts executáveis do wrapper não estejam presentes em um clone específico, gere-os com uma instalação compatível do Gradle, respeitando a distribuição indicada em `gradle-wrapper.properties`.
 
-O workflow de integração contínua prepara o Gradle Wrapper a partir da versão definida em `gradle/wrapper/gradle-wrapper.properties`. Caso os scripts do wrapper não estejam presentes no clone, gere-os com uma instalação local do Gradle 9.3.1:
-
-```bash
-gradle wrapper --gradle-version 9.3.1 --distribution-type bin
-chmod +x gradlew
-```
-
-Configure o Android SDK pelo Android Studio ou pelas variáveis de ambiente do seu sistema. Em seguida, valide o ambiente:
+## Comandos de validação
 
 ```bash
-./gradlew --version
-```
-
-## Compilação e testes
-
-Executar os testes locais:
-
-```bash
-./gradlew test
-```
-
-Gerar o APK de depuração:
-
-```bash
+./gradlew testDebugUnitTest
+./gradlew lintDebug
 ./gradlew assembleDebug
 ```
 
-O artefato de depuração é gerado em:
+Para testes instrumentados em emulador ou dispositivo:
+
+```bash
+./gradlew connectedDebugAndroidTest
+```
+
+O APK de depuração é gerado em:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Para instalar em um dispositivo conectado com depuração USB habilitada:
+O APK debug serve para desenvolvimento e validação. Não distribua esse artefato como versão de produção.
 
-```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-O workflow [Android Build and Tests](.github/workflows/build-apk.yml) executa os testes unitários, compila o APK de depuração e publica o artefato temporário do GitHub Actions. O artefato do workflow tem retenção configurada de 14 dias.
-
-## Estrutura do projeto
+## Estrutura
 
 ```text
-Prumo/
-├── app/
-│   └── src/
-│       ├── main/
-│       │   ├── java/com/example/
-│       │   │   ├── data/          # Room, DAO, repositório, backup e configurações
-│       │   │   ├── model/         # Entidades e modelos de domínio
-│       │   │   ├── ui/            # Compose, telas, componentes e ViewModel
-│       │   │   └── util/          # Formatação e exportação de relatórios
-│       │   └── res/               # Recursos Android
-│       ├── test/                  # Testes locais automatizados
-│       └── androidTest/           # Testes instrumentados
-├── docs/                          # Documentação funcional e técnica
-├── .github/workflows/             # Integração contínua
-├── gradle/                        # Catálogo e configuração do Gradle
-└── README.md
+app/src/main/java/com/example/
+├── data/       # Room, DAO, repositório, DataStore e backup
+├── model/      # Entidades e modelos financeiros
+├── ui/         # Compose, telas, componentes, tema e ViewModel
+└── util/       # Formatação e exportação de relatórios
+docs/           # Documentação funcional, técnica e de publicação
+.github/        # Workflows, templates de issues e Pull Requests
+gradle/         # Catálogo de dependências e configuração do wrapper
 ```
 
-## Documentação
+## Documentação do projeto
 
-- [Arquitetura da aplicação](docs/arquitetura.md)
+- [Arquitetura](docs/arquitetura.md)
 - [Módulos e regras de negócio](docs/modulos-e-regras-de-negocio.md)
 - [Modelo de dados](docs/modelo-de-dados.md)
 - [Backup e restauração](docs/backup-e-restauracao.md)
 - [Segurança](docs/seguranca.md)
 - [Testes e integração contínua](docs/testes-e-ci.md)
-- [Compilação e publicação](docs/build-e-publicacao.md)
+- [Tema, usabilidade e acessibilidade](docs/usabilidade-e-acessibilidade.md)
+- [Preparação e publicação](docs/build-e-publicacao.md)
+- [Checklist de publicação](docs/checklist-publicacao.md)
 - [Política de Privacidade](docs/politica-de-privacidade.md)
 - [Termos de Uso](docs/termos-de-uso.md)
 - [Histórico de alterações](CHANGELOG.md)
-- [Como contribuir](CONTRIBUTING.md)
-- [Como reportar vulnerabilidades](SECURITY.md)
+- [Contribuição](CONTRIBUTING.md)
+- [Relato de vulnerabilidades](SECURITY.md)
 
-## Privacidade e armazenamento
+## Integridade financeira
 
-Os registros operacionais são persistidos localmente por meio do Room, enquanto as preferências do negócio são armazenadas pelo DataStore. O aplicativo oferece backup manual em JSON. O backup automático do Android está desativado na configuração atual do manifesto.
+O sistema utiliza centavos inteiros para representar valores monetários. As operações que relacionam vendas, caixa e estoque são executadas por métodos transacionais do Room. Movimentações manuais de estoque também devem atualizar o saldo e o histórico na mesma transação, com verificação de quantidade e proteção contra overflow aritmético.
 
-Os arquivos exportados passam a estar sob controle de quem os salva ou compartilha. Proteja o dispositivo e mantenha os backups em local seguro.
+O backup valida formato, versão, tamanho, campos, faixas numéricas, identificadores duplicados e referências entre registros antes de substituir as tabelas Room. As preferências são persistidas pelo DataStore, separado do banco Room; por isso, a restauração completa ainda exige testes específicos de falha entre as duas persistências.
 
-Consulte a [Política de Privacidade](docs/politica-de-privacidade.md) para conhecer o tratamento de dados descrito para esta versão.
+## Privacidade e segurança
 
-## Escopo e limitações
+O manifesto desativa o backup automático do Android e não declara permissão de notificações que não seja utilizada pela versão atual. O modo de ocultação de valores é apenas visual; não equivale a criptografia nem a controle de acesso.
 
-- Os indicadores e relatórios são gerenciais e dependem dos dados cadastrados.
-- O aplicativo não realiza integração bancária nesta versão.
-- O backup é uma operação manual; o usuário deve manter cópias atualizadas.
-- O PDF da DRE é um demonstrativo gerencial, não um documento fiscal ou escrituração contábil.
-- A aprovação do build automatizado não substitui testes funcionais em dispositivos Android reais.
-- A documentação de privacidade deve ser revisada pelo responsável pelo produto antes de qualquer distribuição pública, incluindo a definição de um canal de contato válido.
+O backup JSON contém informações financeiras em texto legível. Guarde os arquivos em local privado e compartilhe-os apenas com pessoas autorizadas. A versão atual não oferece criptografia própria de backup nem bloqueio biométrico/PIN.
 
-Consulte [docs/modulos-e-regras-de-negocio.md](docs/modulos-e-regras-de-negocio.md) para o escopo funcional e [docs/build-e-publicacao.md](docs/build-e-publicacao.md) para os cuidados de distribuição.
+Consulte [Segurança](docs/seguranca.md) e [Política de Privacidade](docs/politica-de-privacidade.md).
 
-## Contribuição
+## Situação de publicação
 
-Contribuições são bem-vindas. Antes de abrir uma alteração, leia o [guia de contribuição](CONTRIBUTING.md), descreva o problema, mantenha o escopo objetivo e execute os testes aplicáveis.
+Um build verde é necessário, mas não suficiente para publicar. A distribuição exige validação funcional em dispositivos reais, testes de atualização e restauração, revisão de segurança e privacidade, assinatura de release, materiais da loja e confirmação das declarações do Google Play.
+
+O checklist atualizado está em [docs/checklist-publicacao.md](docs/checklist-publicacao.md). Não considere a versão pronta enquanto houver itens obrigatórios pendentes.
 
 ## Licença
 
-Este repositório ainda não contém um arquivo de licença. Portanto, o código não deve ser tratado como software de código aberto com permissões de uso, modificação ou redistribuição previamente concedidas. A licença deverá ser definida pelo responsável pelo projeto antes de anunciar oficialmente os termos de distribuição.
+O repositório não contém uma licença de software. Até que o responsável defina e publique uma licença, não se deve presumir permissão de uso, modificação ou redistribuição do código.
