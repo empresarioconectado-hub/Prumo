@@ -9,10 +9,29 @@ import androidx.room.Update
 import com.example.model.*
 import kotlinx.coroutines.flow.Flow
 
+data class PrumoDataSnapshot(
+    val cashEntries: List<CashEntry>,
+    val stockItems: List<StockItem>,
+    val stockMovements: List<StockMovement>,
+    val sales: List<SaleRecord>,
+    val sellers: List<SellerProfile>,
+    val fixedExpenses: List<FixedExpense>
+)
+
 @Dao
 interface PrumoDao {
     @Query("SELECT * FROM cash_entries ORDER BY dateMillis DESC, id DESC") fun observeCashEntries(): Flow<List<CashEntry>>
     @Query("SELECT * FROM cash_entries") suspend fun allCashEntries(): List<CashEntry>
+
+    @Transaction
+    suspend fun readAllDataSnapshot(): PrumoDataSnapshot = PrumoDataSnapshot(
+        cashEntries = allCashEntries(),
+        stockItems = allStockItems(),
+        stockMovements = allStockMovements(),
+        sales = allSales(),
+        sellers = allSellers(),
+        fixedExpenses = allFixedExpenses()
+    )
     @Query("SELECT * FROM cash_entries WHERE id = :id LIMIT 1") suspend fun cashEntryById(id: Long): CashEntry?
     @Query("SELECT * FROM cash_entries WHERE saleId = :saleId LIMIT 1") suspend fun cashEntryForSale(saleId: Long): CashEntry?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertCashEntry(entry: CashEntry): Long

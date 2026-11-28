@@ -34,6 +34,7 @@ class PrumoBackupManager(
 
     suspend fun exportJson(): String {
         val settings = settingsStore.settingsFlow.first()
+        val snapshot = dao.readAllDataSnapshot()
         val root = JSONObject()
             .put("format", "prumo-backup")
             .put("schemaVersion", 1)
@@ -43,12 +44,12 @@ class PrumoBackupManager(
                 .put("initialBalanceCents", settings.initialBalanceCents)
                 .put("minCashAlertCents", settings.minCashAlertCents)
                 .put("taxRatePercent", settings.taxRatePercent))
-            .put("cashEntries", JSONArray().apply { dao.allCashEntries().forEach { put(it.toJson()) } })
-            .put("stockItems", JSONArray().apply { dao.allStockItems().forEach { put(it.toJson()) } })
-            .put("stockMovements", JSONArray().apply { dao.allStockMovements().forEach { put(it.toJson()) } })
-            .put("sales", JSONArray().apply { dao.allSales().forEach { put(it.toJson()) } })
-            .put("sellers", JSONArray().apply { dao.allSellers().forEach { put(it.toJson()) } })
-            .put("fixedExpenses", JSONArray().apply { dao.allFixedExpenses().forEach { put(it.toJson()) } })
+            .put("cashEntries", JSONArray().apply { snapshot.cashEntries.forEach { put(it.toJson()) } })
+            .put("stockItems", JSONArray().apply { snapshot.stockItems.forEach { put(it.toJson()) } })
+            .put("stockMovements", JSONArray().apply { snapshot.stockMovements.forEach { put(it.toJson()) } })
+            .put("sales", JSONArray().apply { snapshot.sales.forEach { put(it.toJson()) } })
+            .put("sellers", JSONArray().apply { snapshot.sellers.forEach { put(it.toJson()) } })
+            .put("fixedExpenses", JSONArray().apply { snapshot.fixedExpenses.forEach { put(it.toJson()) } })
         return root.toString(2)
     }
 
@@ -113,11 +114,32 @@ class PrumoBackupManager(
         require(cash.all { it.saleId == null || it.saleId in saleIds }) {
             "Backup contém lançamentos vinculados a vendas inexistentes."
         }
-        dao.replaceAllData(cash, stock, sales, sellers, expenses, movements)
-        settingsStore.updateSettings(
-            settings.businessName, settings.initialBalanceCents,
-            settings.minCashAlertCents, settings.taxRatePercent
-        )
+        val previousSettings = settingsStore.settingsFlow.first()
+        val previousData = dao.readAllDataSnapshot()
+        try {
+            dao.replaceAllData(cash, stock, sales, sellers, expenses, movements)
+            settingsStore.updateSettings(
+                settings.businessName, settings.initialBalanceCents,
+                settings.minCashAlertCents, settings.taxRatePercent
+            )
+        } catch (restoreError: Exception) {
+            try {
+                dao.replaceAllData(
+                    previousData.cashEntries, previousData.stockItems, previousData.sales,
+                    previousData.sellers, previousData.fixedExpenses, previousData.stockMovements
+                )
+                settingsStore.updateSettings(
+                    previousSettings.businessName, previousSettings.initialBalanceCents,
+                    previousSettings.minCashAlertCents, previousSettings.taxRatePercent
+                )
+            } catch (rollbackError: Exception) {
+                restoreError.addSuppressed(rollbackError)
+            }
+            throw IllegalStateException(
+                "A restauração não foi concluída. O aplicativo tentou recuperar os dados anteriores.",
+                restoreError
+            )
+        }
     }
 
     private fun CashEntry.toJson() = JSONObject()
