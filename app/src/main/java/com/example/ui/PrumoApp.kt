@@ -201,7 +201,10 @@ fun PrumoApp() {
         }
     }
 
+    @Suppress("DEPRECATION")
     fun requestDeviceCredential() {
+        // CryptoObject cannot be combined with DEVICE_CREDENTIAL fallback.
+        // Use the system Keyguard challenge as a separate, trusted path.
         val intent = keyguardManager.createConfirmDeviceCredentialIntent(
             "Desbloquear Prumo",
             "Confirme o PIN, padrão ou senha do dispositivo."
