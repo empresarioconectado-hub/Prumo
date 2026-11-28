@@ -1,5 +1,6 @@
 package com.example.data
 
+import android.os.Build
 import android.util.Base64
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
@@ -28,7 +29,8 @@ internal object PrumoBackupCrypto {
         val random = SecureRandom()
         val salt = ByteArray(SALT_BYTES).also(random::nextBytes)
         val iv = ByteArray(IV_BYTES).also(random::nextBytes)
-        val keyBytes = deriveKey(password, salt, ITERATIONS)
+        val kdf = if (Build.VERSION.SDK_INT >= 26) "PBKDF2WithHmacSHA256" else "PBKDF2WithHmacSHA1"
+        val keyBytes = deriveKey(password, salt, ITERATIONS, kdf)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(TAG_LENGTH_BITS, iv))
         val encrypted = cipher.doFinal(plainText.toByteArray(StandardCharsets.UTF_8))
@@ -36,7 +38,7 @@ internal object PrumoBackupCrypto {
         return JSONObject()
             .put("format", FORMAT)
             .put("encryptionVersion", VERSION)
-            .put("kdf", "PBKDF2WithHmacSHA256")
+            .put("kdf", kdf)
             .put("iterations", ITERATIONS)
             .put("cipher", "AES-256-GCM")
             .put("salt", Base64.encodeToString(salt, Base64.NO_WRAP))
@@ -50,7 +52,8 @@ internal object PrumoBackupCrypto {
         val envelope = JSONObject(envelopeJson)
         require(envelope.getString("format") == FORMAT) { "Formato de backup criptografado inválido." }
         require(envelope.getInt("encryptionVersion") == VERSION) { "Versão de criptografia não suportada." }
-        require(envelope.getString("kdf") == "PBKDF2WithHmacSHA256" &&
+        val kdf = envelope.getString("kdf")
+        require(kdf in setOf("PBKDF2WithHmacSHA256", "PBKDF2WithHmacSHA1") &&
             envelope.getString("cipher") == "AES-256-GCM") { "Algoritmo de criptografia não suportado." }
         val iterations = envelope.getInt("iterations")
         require(iterations in 100_000..1_000_000) { "Parâmetros de derivação de chave inválidos." }
@@ -60,7 +63,7 @@ internal object PrumoBackupCrypto {
         require(salt.size == SALT_BYTES && iv.size == IV_BYTES && ciphertext.size >= 16) {
             "Arquivo de backup criptografado corrompido."
         }
-        val keyBytes = deriveKey(password, salt, iterations)
+        val keyBytes = deriveKey(password, salt, iterations, kdf)
         try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(TAG_LENGTH_BITS, iv))
@@ -70,10 +73,10 @@ internal object PrumoBackupCrypto {
         }
     }
 
-    private fun deriveKey(password: String, salt: ByteArray, iterations: Int): ByteArray {
+    private fun deriveKey(password: String, salt: ByteArray, iterations: Int, algorithm: String): ByteArray {
         val spec = PBEKeySpec(password.toCharArray(), salt, iterations, KEY_LENGTH_BITS)
         return try {
-            SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+            SecretKeyFactory.getInstance(algorithm).generateSecret(spec).encoded
         } finally {
             spec.clearPassword()
         }
