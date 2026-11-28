@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +53,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -134,19 +138,27 @@ fun PrumoApp() {
     val backupRepository = remember(context) {
         PrumoRepository(PrumoDatabase.getInstance(context).prumoDao(), SettingsDataStore(context))
     }
+    var backupPassword by remember { mutableStateOf("") }
+    var pendingBackupImportJson by remember { mutableStateOf<String?>(null) }
+    var showBackupExportPasswordDialog by remember { mutableStateOf(false) }
+    var showBackupImportPasswordDialog by remember { mutableStateOf(false) }
     val exportBackupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) coroutineScope.launch {
             try {
-                val json = backupRepository.exportBackupJson()
+                val json = backupRepository.exportBackupJson(backupPassword)
                 val output = context.contentResolver.openOutputStream(uri)
                     ?: error("Não foi possível abrir o arquivo de destino.")
                 output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
-                snackbarHostState.showSnackbar("Backup exportado com sucesso.")
+                backupPassword = ""
+                snackbarHostState.showSnackbar("Backup criptografado exportado com sucesso.")
             } catch (error: Exception) {
+                backupPassword = ""
                 snackbarHostState.showSnackbar("Falha ao exportar backup: ${error.message}")
             }
+        } else {
+            backupPassword = ""
         }
     }
     val exportDrePdfLauncher = rememberLauncherForActivityResult(
@@ -184,10 +196,11 @@ fun PrumoApp() {
             try {
                 val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                     ?: error("Não foi possível ler o arquivo selecionado.")
-                backupRepository.restoreBackupJson(json)
-                snackbarHostState.showSnackbar("Backup restaurado. Os dados locais foram substituídos.")
+                pendingBackupImportJson = json
+                backupPassword = ""
+                showBackupImportPasswordDialog = true
             } catch (error: Exception) {
-                snackbarHostState.showSnackbar("Falha ao restaurar backup: ${error.message}")
+                snackbarHostState.showSnackbar("Falha ao ler backup: ${error.message}")
             }
         }
     }
@@ -479,9 +492,109 @@ fun PrumoApp() {
                 },
                 onLoadSampleData = { viewModel.loadSampleData() },
                 onClearAllData = { viewModel.clearAllData() },
-                onExportBackup = { exportBackupLauncher.launch("prumo-backup-${System.currentTimeMillis()}.json") },
-                onImportBackup = { importBackupLauncher.launch(arrayOf("application/json", "text/json")) }
+                onExportBackup = {
+                    activeDialog = null
+                    backupPassword = ""
+                    showBackupExportPasswordDialog = true
+                },
+                onImportBackup = {
+                    activeDialog = null
+                    importBackupLauncher.launch(arrayOf("application/json", "text/json"))
+                }
             )
         }
     }
+    if (showBackupExportPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showBackupExportPasswordDialog = false
+                backupPassword = ""
+            },
+            title = { Text("Proteger backup") },
+            text = {
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    Text("Crie uma senha com pelo menos 12 caracteres. Ela será necessária para restaurar este arquivo e não é armazenada pelo Prumo.")
+                    OutlinedTextField(
+                        value = backupPassword,
+                        onValueChange = { backupPassword = it.take(128) },
+                        label = { Text("Senha do backup") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = backupPassword.length >= 12,
+                    onClick = {
+                        showBackupExportPasswordDialog = false
+                        exportBackupLauncher.launch("prumo-backup-${System.currentTimeMillis()}.json")
+                    }
+                ) { Text("Exportar criptografado") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBackupExportPasswordDialog = false
+                    backupPassword = ""
+                }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (showBackupImportPasswordDialog) {
+        val encryptedImport = pendingBackupImportJson?.contains("prumo-encrypted-backup") == true
+        AlertDialog(
+            onDismissRequest = {
+                showBackupImportPasswordDialog = false
+                pendingBackupImportJson = null
+                backupPassword = ""
+            },
+            title = { Text("Restaurar backup") },
+            text = {
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (encryptedImport) "Informe a senha usada na exportação. Sem a senha correta, o arquivo não poderá ser restaurado."
+                        else "Este é um backup antigo sem criptografia. Você pode restaurá-lo sem senha; faça um novo backup protegido após a importação."
+                    )
+                    if (encryptedImport) {
+                        OutlinedTextField(
+                            value = backupPassword,
+                            onValueChange = { backupPassword = it.take(128) },
+                            label = { Text("Senha do backup") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = pendingBackupImportJson != null && (!encryptedImport || backupPassword.isNotBlank()),
+                    onClick = {
+                        val json = pendingBackupImportJson ?: return@TextButton
+                        val password = backupPassword
+                        showBackupImportPasswordDialog = false
+                        pendingBackupImportJson = null
+                        backupPassword = ""
+                        coroutineScope.launch {
+                            try {
+                                backupRepository.restoreBackupJson(json, password)
+                                snackbarHostState.showSnackbar("Backup restaurado. Os dados locais foram substituídos.")
+                            } catch (error: Exception) {
+                                snackbarHostState.showSnackbar("Falha ao restaurar backup: ${error.message}")
+                            }
+                        }
+                    }
+                ) { Text("Restaurar dados") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBackupImportPasswordDialog = false
+                    pendingBackupImportJson = null
+                    backupPassword = ""
+                }) { Text("Cancelar") }
+            }
+        )
+    }
+
 }
