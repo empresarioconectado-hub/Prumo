@@ -990,6 +990,7 @@ fun BusinessSettingsDialog(
     onImportBackup: () -> Unit,
     appLockEnabled: Boolean,
     onToggleAppLock: (Boolean) -> Boolean,
+    onThemeModeChange: (String) -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
     onOpenTerms: () -> Unit
 ) {
@@ -1047,6 +1048,34 @@ fun BusinessSettingsDialog(
                 if (errorMsg != null) {
                     Text(errorMsg.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text("Aparência", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(
+                        selected = current.themeMode == "SYSTEM",
+                        onClick = { onThemeModeChange("SYSTEM") },
+                        label = { Text("Sistema") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = current.themeMode == "LIGHT",
+                        onClick = { onThemeModeChange("LIGHT") },
+                        label = { Text("Claro") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = current.themeMode == "DARK",
+                        onClick = { onThemeModeChange("DARK") },
+                        label = { Text("Escuro") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Text(
+                    "Escolha se o Prumo acompanha o Android ou mantém um tema fixo.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text("Segurança", style = MaterialTheme.typography.labelMedium)
@@ -1109,23 +1138,6 @@ fun BusinessSettingsDialog(
                             }
                         }
                     }
-                }
-
-                Text(
-                    "Privacidade e condições de uso",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-                TextButton(onClick = {
-                    uriHandler.openUri("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/politica-de-privacidade.md")
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Política de Privacidade")
-                }
-                TextButton(onClick = {
-                    uriHandler.openUri("https://github.com/empresarioconectado-hub/Prumo/blob/main/docs/termos-de-uso.md")
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Termos de Uso")
                 }
 
                 OutlinedButton(
