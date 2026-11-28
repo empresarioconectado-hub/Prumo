@@ -18,7 +18,7 @@ Na exportação, esse conteúdo é protegido por um envelope `prumo-encrypted-ba
 - salt aleatório de 16 bytes e IV aleatório de 12 bytes;
 - senha definida pelo usuário com pelo menos 12 caracteres.
 
-A senha não é salva no dispositivo nem incluída no arquivo. Sem ela, o backup criptografado não pode ser restaurado.
+A senha não é salva no dispositivo nem incluída no arquivo. Sem ela, o backup criptografado não pode ser restaurado. A preferência de bloqueio biométrico/credencial é local ao dispositivo e não é transferida no backup.
 
 ## Exportar
 
@@ -38,7 +38,7 @@ O nome sugerido pelo aplicativo inclui a identificação Prumo e um timestamp.
 4. Escolha o arquivo.
 5. Confirme a operação somente após verificar que o arquivo corresponde ao negócio e à cópia desejados.
 
-A restauração verifica o identificador do formato, a versão do esquema, o limite de tamanho de 10 milhões de caracteres, campos obrigatórios, faixas numéricas, percentuais, identificadores duplicados e referências de vendas e lançamentos antes de substituir as tabelas Room. O histórico de movimentações mantém referências históricas mesmo quando um produto não está mais cadastrado.
+A restauração verifica o identificador do formato, a versão do esquema, o limite de tamanho (10 milhões de caracteres para o conteúdo interno e 15 milhões para o envelope criptografado), campos obrigatórios, faixas numéricas, percentuais, identificadores duplicados e referências de vendas e lançamentos antes de substituir as tabelas Room. O histórico de movimentações mantém referências históricas mesmo quando um produto não está mais cadastrado.
 
 **Atenção:** a restauração substitui os registros operacionais existentes. Faça uma exportação do estado atual antes de importar outro backup.
 
@@ -70,6 +70,6 @@ O backup é manual e depende de ação do usuário. Não há garantia de recuper
 
 ## Integridade e limitações atuais
 
-A substituição das tabelas Room ocorre em uma transação. As preferências do negócio são gravadas posteriormente no DataStore, que é um armazenamento independente. Portanto, ainda não existe atomicidade distribuída entre o banco e as preferências. Antes de uso em produção, devem ser adicionados testes de falha nessa fronteira e uma estratégia de recuperação que restaure também as configurações anteriores.
+A exportação lê um snapshot transacional do Room. A substituição das tabelas Room ocorre em uma transação; as preferências do negócio são gravadas posteriormente no DataStore, que é um armazenamento independente. Se uma das etapas falhar, o aplicativo tenta restaurar o snapshot e as preferências anteriores. Ainda não existe atomicidade distribuída e um encerramento abrupto do processo entre as duas gravações não pode ser compensado. Esse cenário precisa de teste específico e permanece como bloqueio para declarar recuperação plenamente resiliente.
 
 A criptografia autenticada protege confidencialidade e integridade do conteúdo cifrado. A validação estrutural continua sendo executada após a descriptografia. Não restaure arquivos recebidos de origem desconhecida. Backups legados sem criptografia permanecem legíveis por compatibilidade e devem ser reexportados no formato protegido.

@@ -23,9 +23,9 @@ Essas informações são fornecidas pelo usuário durante o uso do aplicativo. A
 
 Os registros operacionais são armazenados localmente no dispositivo Android, por meio do banco de dados Room. As preferências do negócio são mantidas localmente pelo Preferences DataStore.
 
-Na versão documentada, os registros financeiros e operacionais não são sincronizados com um servidor do Prumo. O manifesto Android também desativa o backup automático do aplicativo. A cópia de segurança disponível é iniciada manualmente pelo usuário, por meio da exportação de um arquivo JSON.
+Na versão documentada, os registros financeiros e operacionais não são sincronizados com um servidor do Prumo. O manifesto Android desativa o backup automático do aplicativo e não declara permissão de notificações, pois notificações programadas não fazem parte desta versão. A cópia de segurança disponível é iniciada manualmente pelo usuário, por meio da exportação de um arquivo JSON criptografado com senha. A senha não é armazenada pelo aplicativo. Backups legados sem criptografia podem ser importados para migração.
 
-O acesso ao dispositivo desbloqueado ou a um arquivo exportado pode permitir a visualização das informações nele contidas. O usuário deve proteger o aparelho e os arquivos gerados.
+O acesso ao dispositivo desbloqueado pode permitir a visualização das informações. O bloqueio opcional do Prumo utiliza biometria ou credencial de bloqueio do Android e impede capturas de tela/prévias recentes enquanto ativo. Backups novos são protegidos por AES-256-GCM; arquivos legados sem criptografia continuam legíveis. O usuário deve proteger o aparelho, a senha e os arquivos gerados.
 
 ## 3. Compartilhamento e serviços de terceiros
 
@@ -35,7 +35,7 @@ O Prumo não controla a disponibilidade, a segurança ou as práticas de privaci
 
 ## 4. Permissões
 
-O manifesto da versão atual declara a permissão `POST_NOTIFICATIONS`. A funcionalidade de notificações programadas ainda não integra o escopo funcional disponível. A declaração no manifesto, por si só, não significa que o aplicativo esteja enviando notificações.
+A versão atual não declara permissões de notificações, câmera, localização ou acesso a contatos. A funcionalidade de notificações programadas não integra o escopo funcional disponível.
 
 As permissões efetivamente solicitadas podem variar conforme a versão e os recursos implementados. O usuário pode consultar e gerenciar as permissões concedidas nas configurações do Android.
 
@@ -53,7 +53,7 @@ Arquivos exportados não são apagados automaticamente quando os dados do aplica
 
 ## 6. Segurança
 
-O aplicativo utiliza os mecanismos de armazenamento e proteção disponibilizados pelo Android e mantém os registros operacionais localmente. O modo de privacidade visual apenas oculta valores nas telas compatíveis; não equivale a criptografia, autenticação ou bloqueio do aplicativo.
+O aplicativo utiliza os mecanismos de armazenamento e proteção disponibilizados pelo Android e mantém os registros operacionais localmente. O modo de privacidade visual apenas oculta valores nas telas compatíveis; não equivale a criptografia. O bloqueio opcional depende da credencial configurada no Android. A criptografia do backup protege somente o arquivo exportado, não substitui a proteção do dispositivo nem cifra o banco Room local.
 
 Nenhum mecanismo elimina todos os riscos. Recomenda-se utilizar bloqueio de tela, manter o sistema atualizado e não compartilhar backups com pessoas não autorizadas.
 
