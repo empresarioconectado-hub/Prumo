@@ -424,7 +424,7 @@ private fun StockItemCard(
                 Text(
                     text = buildString {
                         if (item.suggestedPurchaseQty > 0L) {
-                            append("Sugestão compra: ${item.suggestedPurchaseQty} ${item.unit} (${formatBrlFromCents(item.estimatedPurchaseCostCents)})")
+                            append("Sugestão compra: ${item.suggestedPurchaseQty} ${item.unit} (${privacyMoney(item.estimatedPurchaseCostCents, hideValues)})")
                         }
                         if (item.lossUnitsCount > 0L) {
                             if (isNotEmpty()) append(" · ")
