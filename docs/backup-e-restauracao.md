@@ -4,7 +4,7 @@
 
 O Prumo oferece exportação e restauração manual de dados em JSON para que o usuário possa guardar uma cópia dos registros e transferi-los entre instalações.
 
-O backup não é automático. A responsabilidade por exportar, armazenar e proteger os arquivos é do usuário. A criptografia, descriptografia e leitura/gravação dos arquivos são executadas fora da thread principal para manter a interface responsiva.
+O backup não é automático. A responsabilidade por exportar, armazenar e proteger os arquivos é do usuário. A criptografia, descriptografia e leitura/gravação dos arquivos são executadas fora da thread principal para manter a interface responsiva. A limpeza completa dos dados operacionais também utiliza o mesmo registro de recuperação, para evitar um estado parcialmente apagado se o processo for encerrado durante a operação.
 
 ## Conteúdo do arquivo
 
@@ -64,13 +64,15 @@ O backup contém dados financeiros e operacionais do negócio. Trate-o como info
 
 O aplicativo não controla a segurança do serviço ou dispositivo em que o usuário decidir armazenar o arquivo.
 
+O registro de recuperação é um arquivo temporário em noBackupFilesDir, área privada do aplicativo e excluída dos backups automáticos do Android. Ele contém um snapshot anterior para permitir a reversão e não é criptografado separadamente do banco local. O registro é removido após a conclusão bem-sucedida; não deve ser copiado, compartilhado ou tratado como backup de usuário.
+
 ## Limitações
 
-O backup é manual e depende de ação do usuário. Não há garantia de recuperação se o usuário perder o arquivo, se o arquivo estiver corrompido ou se a versão do formato deixar de ser suportada.
+O backup de usuário é manual e depende de ação do usuário. Não há garantia de recuperação se o usuário perder o arquivo, se o arquivo estiver corrompido ou se a versão do formato deixar de ser suportada. O registro interno de recuperação protege somente operações interrompidas durante restauração ou limpeza; não substitui uma cópia externa válida.
 
 
 ## Integridade e limitações atuais
 
-A exportação lê um snapshot transacional do Room. A substituição das tabelas Room ocorre em uma transação; as preferências do negócio são gravadas posteriormente no DataStore, que é um armazenamento independente. Se uma das etapas falhar, o aplicativo tenta restaurar o snapshot e as preferências anteriores. Ainda não existe atomicidade distribuída e um encerramento abrupto do processo entre as duas gravações não pode ser compensado. Esse cenário precisa de teste específico e permanece como bloqueio para declarar recuperação plenamente resiliente.
+A exportação lê um snapshot transacional do Room. A substituição das tabelas Room ocorre em uma transação; as preferências do negócio são gravadas posteriormente no DataStore, que é um armazenamento independente. Antes de alterar qualquer uma das persistências, o aplicativo grava o snapshot anterior e as preferências locais em um registro de recuperação usando AtomicFile, dentro de noBackupFilesDir. Após concluir as gravações, o registro é removido. Em caso de exceção, o aplicativo tenta recuperar o estado anterior imediatamente. Se o processo for encerrado durante a operação, MainActivity verifica o registro na próxima inicialização e executa a recuperação antes de exibir as telas financeiras.
 
 A criptografia autenticada protege confidencialidade e integridade do conteúdo cifrado. O formato atual utiliza PBKDF2-HMAC-SHA256 independentemente da versão do Android, permitindo restaurar backups entre dispositivos compatíveis. A validação estrutural continua sendo executada após a descriptografia. Não restaure arquivos recebidos de origem desconhecida. Backups legados sem criptografia permanecem legíveis por compatibilidade e devem ser reexportados no formato protegido.
