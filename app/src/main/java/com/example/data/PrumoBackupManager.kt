@@ -113,11 +113,17 @@ class PrumoBackupManager(
             movements.map { it.id }.distinct().size == movements.size) {
             "Backup contém identificadores duplicados."
         }
+        require(stock.map { it.sku.lowercase() }.distinct().size == stock.size) {
+            "Backup contém SKUs duplicados."
+        }
         val stockIds = stock.map { it.id }.toSet()
         require(sales.all { it.stockItemId == null || it.stockItemId in stockIds }) {
             "Backup contém referências a produtos inexistentes."
         }
         val saleIds = sales.map { it.id }.toSet()
+        require(cash.mapNotNull { it.saleId }.distinct().size == cash.count { it.saleId != null }) {
+            "Backup contém mais de um lançamento vinculado à mesma venda."
+        }
         require(cash.all { it.saleId == null || it.saleId in saleIds }) {
             "Backup contém lançamentos vinculados a vendas inexistentes."
         }

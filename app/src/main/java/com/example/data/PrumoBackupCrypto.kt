@@ -77,11 +77,13 @@ internal object PrumoBackupCrypto {
     }
 
     private fun deriveKey(password: String, salt: ByteArray, iterations: Int, algorithm: String): ByteArray {
-        val spec = PBEKeySpec(password.toCharArray(), salt, iterations, KEY_LENGTH_BITS)
+        val passwordChars = password.toCharArray()
+        val spec = PBEKeySpec(passwordChars, salt, iterations, KEY_LENGTH_BITS)
         return try {
             SecretKeyFactory.getInstance(algorithm).generateSecret(spec).encoded
         } finally {
             spec.clearPassword()
+            passwordChars.fill('\\u0000')
         }
     }
 }
