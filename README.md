@@ -23,6 +23,7 @@ A versão atual utiliza armazenamento local no dispositivo. O aplicativo não of
 
 | Módulo | Recursos |
 | --- | --- |
+| Primeiro acesso | Orientação para começar a usar o app, com atalhos para registrar a primeira entrada ou venda e opção de explorar dados de exemplo quando o painel está vazio. |
 | Início | Indicadores consolidados, alertas de caixa e estoque, visão mensal e projeção de caixa. |
 | Caixa | Entradas e saídas, categorias, contas, meios de pagamento, situação de pagamento, filtros e histórico mensal. |
 | Estoque | Produtos, custo, preço, saldo, estoque mínimo, ponto de reposição, sugestão de compra e histórico de movimentações. |
