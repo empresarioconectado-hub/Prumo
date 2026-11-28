@@ -13,6 +13,10 @@ permissions:
   security-events: write
   actions: read
 
+concurrency:
+  group: prumo-codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     name: Analyze Kotlin and Java
