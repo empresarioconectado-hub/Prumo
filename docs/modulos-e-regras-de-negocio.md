@@ -6,6 +6,19 @@ Este documento descreve o escopo funcional implementado no código atual do Prum
 
 A tela inicial reúne informações de caixa, vendas, estoque e resultado do período. Os indicadores são calculados a partir dos registros cadastrados e das configurações do negócio.
 
+### Primeira utilização e dados de demonstração
+
+A instalação começa com uma base operacional vazia. O usuário pode cadastrar seus próprios dados ou carregar um conjunto fictício para conhecer o painel, o caixa, o estoque e a DRE.
+
+A carga de demonstração é não destrutiva:
+- só é permitida quando não existem registros operacionais;
+- não apaga lançamentos, vendas, produtos, movimentações, vendedores ou despesas;
+- preserva as configurações que o usuário já informou;
+- impede chamadas concorrentes na mesma instância do repositório;
+- informa ao usuário quando a base já contém registros e não permite a carga.
+
+Para voltar a uma base vazia, a remoção de dados continua sendo uma ação separada, explícita e confirmada pelo usuário nas configurações. Dados demonstrativos são fictícios e não devem ser usados como registros reais do negócio.
+
 ## 2. Fluxo de caixa
 
 O módulo de caixa trabalha com lançamentos de entrada e saída.
