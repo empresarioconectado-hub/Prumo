@@ -27,9 +27,9 @@ class PrumoRepository(
 
     private val backupManager = PrumoBackupManager(dao, settingsStore)
 
-    suspend fun exportBackupJson(): String = backupManager.exportJson()
+    suspend fun exportBackupJson(password: String): String = backupManager.exportEncryptedJson(password)
 
-    suspend fun restoreBackupJson(json: String) = backupManager.restoreJson(json)
+    suspend fun restoreBackupJson(json: String, password: String) = backupManager.restoreBackup(json, password)
 
     suspend fun updateSettings(
         businessName: String,

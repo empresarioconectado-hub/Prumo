@@ -13,7 +13,24 @@ class PrumoBackupManager(
     private val dao: PrumoDao,
     private val settingsStore: SettingsDataStore
 ) {
-    private companion object { const val MAX_BACKUP_CHARACTERS = 10_000_000 }
+    private companion object {
+        const val MAX_BACKUP_CHARACTERS = 10_000_000
+        const val MAX_ENCRYPTED_BACKUP_CHARACTERS = 15_000_000
+    }
+
+    suspend fun exportEncryptedJson(password: String): String =
+        PrumoBackupCrypto.encrypt(exportJson(), password)
+
+    suspend fun restoreBackup(json: String, password: String) {
+        require(json.length <= MAX_ENCRYPTED_BACKUP_CHARACTERS) { "O arquivo de backup excede o tamanho permitido." }
+        val format = JSONObject(json).optString("format")
+        if (format == "prumo-encrypted-backup") {
+            restoreJson(PrumoBackupCrypto.decrypt(json, password))
+        } else {
+            // Compatibility with existing, unencrypted schemaVersion 1 backups.
+            restoreJson(json)
+        }
+    }
 
     suspend fun exportJson(): String {
         val settings = settingsStore.settingsFlow.first()
