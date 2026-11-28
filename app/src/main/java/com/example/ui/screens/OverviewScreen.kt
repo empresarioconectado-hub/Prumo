@@ -158,6 +158,7 @@ fun OverviewScreen(
                 }
             }
         }
+        }
 
         // Banner de Alerta Inteligente
         item {
