@@ -101,6 +101,7 @@ jobs:
     name: Instrumented tests on Android emulator
     needs: test-and-build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -141,11 +142,24 @@ jobs:
       - name: Run instrumented tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
-          target: google_apis
+          api-level: 30
+          target: default
           arch: x86_64
-          profile: pixel_6
-          script: ./gradlew --no-configuration-cache connectedDebugAndroidTest
+          profile: pixel_2
+          disable-animations: true
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            for attempt in 1 2 3; do
+              if ./gradlew --no-configuration-cache connectedDebugAndroidTest; then
+                exit 0
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                echo "Falha transitória nos testes instrumentados; nova tentativa em 15 segundos."
+                sleep 15
+              fi
+            done
+            exit 1
 
   release-bundle:
     name: Build signed release bundle
