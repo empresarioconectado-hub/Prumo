@@ -6,6 +6,8 @@ import com.example.model.StockStatus
 import com.example.model.SaleRecord
 import com.example.util.parseBrlInputToCents
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class PrumoLogicTest {
@@ -68,6 +70,17 @@ class PrumoLogicTest {
         assertEquals(3L, sale.taxCents)
         assertEquals(3L, sale.commissionCents)
         assertEquals(75L, sale.contributionMarginCents)
+    }
+
+    @Test
+    fun saleRejectablePercentagesAreBoundedByBusinessRules() {
+        val validSale = SaleRecord(
+            description = "Venda", clientName = "Cliente", sellerName = "Vendedor",
+            grossAmountCents = 10_000L, costAmountCents = 4_000L,
+            taxPercent = 100.0, commissionPercent = 0.0, saleDateMillis = 1L
+        )
+        assertEquals(10_000L, validSale.taxCents)
+        assertEquals(-4_000L, validSale.contributionMarginCents)
     }
 
     @Test

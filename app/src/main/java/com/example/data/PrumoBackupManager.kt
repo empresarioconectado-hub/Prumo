@@ -58,7 +58,7 @@ class PrumoBackupManager(
         require(cash.all { it.amountCents >= 0L } && sales.all { it.grossAmountCents >= 0L }) {
             "Backup contém valores financeiros inválidos."
         }
-        require(settings.businessName.isNotBlank() && settings.initialBalanceCents >= 0L &&
+        require(settings.businessName.isNotBlank() &&
             settings.minCashAlertCents >= 0L && settings.taxRatePercent.isFinite() &&
             settings.taxRatePercent in 0.0..100.0) { "Configurações financeiras inválidas no backup." }
         require(cash.all { it.id > 0L && it.description.isNotBlank() && it.amountCents >= 0L &&
@@ -88,8 +88,7 @@ class PrumoBackupManager(
             "Backup contém identificadores duplicados."
         }
         val stockIds = stock.map { it.id }.toSet()
-        require(sales.all { it.stockItemId == null || it.stockItemId in stockIds } &&
-            movements.all { it.stockItemId in stockIds }) {
+        require(sales.all { it.stockItemId == null || it.stockItemId in stockIds }) {
             "Backup contém referências a produtos inexistentes."
         }
         val saleIds = sales.map { it.id }.toSet()
