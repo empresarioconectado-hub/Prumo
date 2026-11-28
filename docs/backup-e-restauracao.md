@@ -4,7 +4,7 @@
 
 O Prumo oferece exportação e restauração manual de dados em JSON para que o usuário possa guardar uma cópia dos registros e transferi-los entre instalações.
 
-O backup não é automático. A responsabilidade por exportar, armazenar e proteger os arquivos é do usuário.
+O backup não é automático. A responsabilidade por exportar, armazenar e proteger os arquivos é do usuário. A criptografia, descriptografia e leitura/gravação dos arquivos são executadas fora da thread principal para manter a interface responsiva.
 
 ## Conteúdo do arquivo
 
@@ -19,7 +19,7 @@ Na exportação, esse conteúdo é protegido por um envelope `prumo-encrypted-ba
 - salt aleatório de 16 bytes e IV aleatório de 12 bytes;
 - senha definida pelo usuário com pelo menos 12 caracteres.
 
-A senha não é salva no dispositivo nem incluída no arquivo. Sem ela, o backup criptografado não pode ser restaurado. A preferência de bloqueio biométrico/credencial é local ao dispositivo e não é transferida no backup.
+A senha não é salva no dispositivo nem incluída no arquivo. Sem ela, o backup criptografado não pode ser restaurado. As preferências de bloqueio biométrico/credencial e de aparência (sistema, claro ou escuro) são locais ao dispositivo e não são transferidas no backup.
 
 ## Exportar
 
