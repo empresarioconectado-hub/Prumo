@@ -142,7 +142,8 @@ data class BusinessSettings(
     val initialBalanceCents: Long = 0L,
     val minCashAlertCents: Long = 500_000L,
     val taxRatePercent: Double = 6.0,
-    val appLockEnabled: Boolean = false
+    val appLockEnabled: Boolean = false,
+    val themeMode: String = "SYSTEM"
 )
 data class DailyCashPoint(
     val dayOffset: Int, val dateMillis: Long, val expectedInflowCents: Long,
