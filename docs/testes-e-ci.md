@@ -16,7 +16,7 @@ Executados pelo Gradle com:
 ./gradlew test
 ```
 
-O conjunto pode incluir testes JUnit e testes executados com Robolectric para cenários que dependem de APIs Android.
+O conjunto inclui testes JUnit e testes executados com Robolectric para cenários que dependem de APIs Android. Entre as regras cobertas por `PrumoLogicTest`, estão conversão monetária, cálculos de estoque e DRE, arredondamento de valores financeiros e conteúdo do comprovante de venda.
 
 ### Testes instrumentados
 
@@ -28,7 +28,7 @@ Esses testes são executados em dispositivo ou emulador Android configurado. A s
 ./gradlew connectedAndroidTest
 ```
 
-A execução depende de um dispositivo/emulador disponível e não faz parte do fluxo de build principal descrito abaixo.
+A execução depende de um dispositivo/emulador disponível. O workflow do GitHub Actions também executa testes instrumentados em um emulador Android após a aprovação da etapa de testes unitários, lint e build debug.
 
 ## Integração contínua
 
@@ -42,11 +42,14 @@ O workflow é acionado em:
 Etapas:
 1. checkout do repositório;
 2. configuração do JDK 21;
-3. preparação do Gradle Wrapper;
-4. execução de `./gradlew test`;
-5. geração de chave de assinatura de depuração temporária;
-6. compilação com `./gradlew assembleDebug`;
-7. publicação do APK como artefato do workflow.
+3. preparação do Gradle Wrapper a partir da versão declarada no projeto;
+4. execução de `testDebugUnitTest`, com repetição para falhas transitórias;
+5. execução de `lintDebug` e publicação do relatório de lint;
+6. geração de chave de depuração temporária;
+7. compilação com `assembleDebug` e publicação do APK;
+8. execução de testes instrumentados em emulador Android, condicionada ao sucesso da etapa anterior.
+
+O workflow também possui uma execução manual opcional para gerar AAB assinado. Esse job exige as secrets de assinatura de produção descritas em [Compilação e publicação](build-e-publicacao.md).
 
 O artefato `prumo-debug-apk` tem retenção de 14 dias.
 
@@ -57,12 +60,12 @@ Uma execução bem-sucedida confirma que:
 - o APK de depuração foi compilado;
 - o artefato esperado foi gerado e carregado.
 
-O workflow atual inclui testes instrumentados em emulador, mas não comprova:
+O workflow inclui testes instrumentados em emulador, mas não comprova:
 - funcionamento em todos os modelos de aparelhos;
 - comportamento em produção;
 - segurança por auditoria independente;
 - aprovação na Google Play;
-- execução de testes instrumentados, salvo se houver etapa específica adicionada ao workflow.
+- validação de todos os fluxos de interface e cenários de uso real.
 
 ## Recomendações para novas alterações
 
