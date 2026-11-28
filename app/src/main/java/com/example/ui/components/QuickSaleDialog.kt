@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -58,7 +57,6 @@ fun QuickSaleDialog(
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val selectedItem = stockItems.firstOrNull { it.id == selectedStockItemId }
-    val quantity = quantityText.toLongOrNull()
     val seller = sellers.firstOrNull()
 
     AlertDialog(
@@ -224,7 +222,7 @@ fun QuickSaleDialog(
                                     grossAmountCents = total,
                                     costAmountCents = cost,
                                     taxPercent = defaultTaxPercent.coerceIn(0.0, 100.0),
-                                    commissionPercent = seller?.commissionPercent?.coerceIn(0.0, 100.0) ?: 0.0,
+                                    commissionPercent = seller?.commissionPercent?.coerceIn(0.0, 100.0) ?: 5.0,
                                     saleDateMillis = System.currentTimeMillis(),
                                     stockItemId = selectedItem?.id,
                                     paymentMethod = paymentMethod,
