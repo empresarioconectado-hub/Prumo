@@ -96,6 +96,7 @@ dependencies {
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.core)
   androidTestImplementation(libs.androidx.runner)
+  "kspAndroidTest"(libs.androidx.room.compiler)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
